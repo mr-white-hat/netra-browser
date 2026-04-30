@@ -119,5 +119,57 @@ func (c *Client) readPump() {
 	}
 }
 
-// dispatchEvent is filled in Task 5; for now, no-op.
-func (c *Client) dispatchEvent(e Event) {}
+// Subscribe returns a channel that receives BufferedEvents whose Method matches.
+// Channel is buffered (16); if full, events are dropped for that subscriber.
+func (c *Client) Subscribe(method string) chan BufferedEvent {
+	ch := make(chan BufferedEvent, 16)
+	v, _ := c.subs.LoadOrStore(method, &eventSubList{})
+	v.(*eventSubList).add(ch)
+	return ch
+}
+
+// Unsubscribe removes a channel previously returned by Subscribe.
+func (c *Client) Unsubscribe(method string, ch chan BufferedEvent) {
+	if v, ok := c.subs.Load(method); ok {
+		v.(*eventSubList).remove(ch)
+	}
+}
+
+func (c *Client) dispatchEvent(e Event) {
+	be := BufferedEvent{At: time.Now(), Method: e.Method, Params: e.Params, SessionID: e.SessionID}
+	if v, ok := c.subs.Load(e.Method); ok {
+		v.(*eventSubList).fanout(be)
+	}
+}
+
+type eventSubList struct {
+	mu    sync.Mutex
+	chans []chan BufferedEvent
+}
+
+func (l *eventSubList) add(ch chan BufferedEvent) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.chans = append(l.chans, ch)
+}
+func (l *eventSubList) remove(ch chan BufferedEvent) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for i, c := range l.chans {
+		if c == ch {
+			l.chans = append(l.chans[:i], l.chans[i+1:]...)
+			return
+		}
+	}
+}
+func (l *eventSubList) fanout(e BufferedEvent) {
+	l.mu.Lock()
+	chans := append([]chan BufferedEvent(nil), l.chans...)
+	l.mu.Unlock()
+	for _, ch := range chans {
+		select {
+		case ch <- e:
+		default: // drop on full
+		}
+	}
+}
