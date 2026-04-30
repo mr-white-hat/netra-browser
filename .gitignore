@@ -1,0 +1,16 @@
+# binaries
+/netra-browser
+/cmd/netra-browser/netra-browser
+*.exe
+
+# go build artifacts
+*.test
+*.out
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
