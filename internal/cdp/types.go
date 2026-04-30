@@ -5,10 +5,10 @@ import "encoding/json"
 
 // Method is an outbound CDP request.
 type Method struct {
-	ID        int64           `json:"id"`
-	Name      string          `json:"method"`
-	Params    any             `json:"params,omitempty"`
-	SessionID string          `json:"sessionId,omitempty"`
+	ID        int64  `json:"id"`
+	Name      string `json:"method"`
+	Params    any    `json:"params,omitempty"`
+	SessionID string `json:"sessionId,omitempty"`
 }
 
 // Response is a CDP method reply.
