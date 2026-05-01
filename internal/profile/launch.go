@@ -13,8 +13,8 @@ import (
 )
 
 type LaunchOpts struct {
-	BinaryPath  string   // path to chromium/chrome; default: discovered from PATH
-	UserDataDir string   // default: ~/.config/google-chrome (Linux) etc.
+	BinaryPath  string // path to chromium/chrome; default: discovered from PATH
+	UserDataDir string // default: ~/.config/google-chrome (Linux) etc.
 	Headless    bool
 	Args        []string // extra args
 }
