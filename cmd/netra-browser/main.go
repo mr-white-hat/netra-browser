@@ -78,6 +78,7 @@ func main() {
 	tools.RegisterBrowserInspect(reg, sess)
 	tools.RegisterBrowserInteract(reg, sess)
 	tools.RegisterBrowserEvents(reg, sess)
+	tools.RegisterSessionTasks(reg, sess)
 
 	var launchHandle *profile.LaunchHandle
 	if *launch {
