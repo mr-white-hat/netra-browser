@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // WaitUntil controls when Navigate returns.
@@ -72,6 +73,12 @@ func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult
 	case <-events:
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	}
+
+	if opts.WaitUntil == WaitNetworkIdle {
+		if err := p.WaitNetworkIdle(ctx, 500*time.Millisecond); err != nil {
+			return nil, err
+		}
 	}
 	return &NavigateResult{URL: opts.URL, FrameID: resp.FrameID}, nil
 }
