@@ -65,4 +65,33 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 		}
 		return map[string]any{"ok": true, "png_base64": data}, nil
 	})
+
+	reg.Register("browser_eval", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var a struct {
+			Expression string `json:"expression"`
+			TargetID   string `json:"target_id"`
+		}
+		if err := json.Unmarshal(params, &a); err != nil {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: err.Error()}.AsResult(), nil
+		}
+		if a.Expression == "" {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "expression required"}.AsResult(), nil
+		}
+		tid := a.TargetID
+		if tid == "" {
+			tid = sess.ActiveTarget()
+		}
+		if tid == "" {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+		}
+		page, err := sess.Page(ctx, tid)
+		if err != nil {
+			return mcp.ToolError{Code: mcp.ErrNotAttached, Message: err.Error()}.AsResult(), nil
+		}
+		v, err := page.Eval(ctx, a.Expression)
+		if err != nil {
+			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
+		}
+		return map[string]any{"ok": true, "result": v}, nil
+	})
 }
