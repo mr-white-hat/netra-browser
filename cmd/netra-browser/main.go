@@ -57,6 +57,7 @@ func main() {
 		},
 	})
 	tools.RegisterBrowserTargets(reg, sess)
+	tools.RegisterBrowserNav(reg, sess)
 
 	if *autoAttach {
 		client, version, count, err := cdp.Attach(ctx, *debugURL)

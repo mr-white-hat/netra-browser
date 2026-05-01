@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
+
+	"github.com/pavankumar2138/netra-browser/internal/cdp"
 )
 
 func TestSessionAttachDetach(t *testing.T) {
@@ -35,3 +37,14 @@ func (*fakeCDP) Send(ctx context.Context, method string, params any) (json.RawMe
 	return json.RawMessage(`{}`), nil
 }
 func (*fakeCDP) Close() error { return nil }
+func (*fakeCDP) SendOnTarget(ctx context.Context, _, _ string, _ any) (json.RawMessage, error) {
+	return json.RawMessage(`{}`), nil
+}
+func (*fakeCDP) AttachToTarget(ctx context.Context, t string) (string, error) {
+	return "S-" + t, nil
+}
+func (*fakeCDP) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+	ch := make(chan cdp.BufferedEvent, 1)
+	ch <- cdp.BufferedEvent{}
+	return ch
+}

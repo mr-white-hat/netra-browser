@@ -3,7 +3,10 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
+
+	"github.com/pavankumar2138/netra-browser/internal/browser"
 )
 
 // CDPSender is the interface the session holds onto.
@@ -21,9 +24,10 @@ type Session struct {
 	mu           sync.RWMutex
 	client       CDPSender
 	activeTarget string
+	pages        map[string]*browser.Page
 }
 
-func NewSession() *Session { return &Session{} }
+func NewSession() *Session { return &Session{pages: map[string]*browser.Page{}} }
 
 func (s *Session) SetClient(c CDPSender) {
 	s.mu.Lock()
@@ -51,6 +55,36 @@ func (s *Session) Clear() {
 		s.client = nil
 	}
 	s.activeTarget = ""
+	s.pages = map[string]*browser.Page{}
+}
+
+// Page returns a cached *browser.Page for targetID, creating it on first touch.
+func (s *Session) Page(ctx context.Context, targetID string) (*browser.Page, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.client == nil {
+		return nil, fmt.Errorf("not attached")
+	}
+	if p, ok := s.pages[targetID]; ok {
+		return p, nil
+	}
+	bs, ok := s.client.(browser.Sender)
+	if !ok {
+		return nil, fmt.Errorf("CDP client does not satisfy browser.Sender")
+	}
+	p, err := browser.NewPage(ctx, bs, targetID)
+	if err != nil {
+		return nil, err
+	}
+	s.pages[targetID] = p
+	return p, nil
+}
+
+// DropPage clears a cached page (so next access re-attaches).
+func (s *Session) DropPage(targetID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.pages, targetID)
 }
 
 func (s *Session) SetActiveTarget(id string) {
