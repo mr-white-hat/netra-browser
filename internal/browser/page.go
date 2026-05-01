@@ -17,6 +17,12 @@ type Sender interface {
 	SubscribeOnTarget(sessionID, method string) chan cdp.BufferedEvent
 }
 
+// eventSub is a single WaitFor subscriber.
+type eventSub struct {
+	method string
+	ch     chan cdp.BufferedEvent
+}
+
 // Page binds a single target plus its CDP session.
 type Page struct {
 	cdp       Sender
@@ -25,6 +31,11 @@ type Page struct {
 
 	mu       sync.Mutex
 	snapshot *Snapshot // last snapshot for snapshot_id resolution (filled in Task 7)
+
+	events *cdp.RingBuffer
+
+	subsMu sync.Mutex
+	subs   []*eventSub
 }
 
 // NewPage attaches to a target and enables Page/DOM/Runtime/Accessibility domains.
@@ -39,6 +50,8 @@ func NewPage(ctx context.Context, c Sender, targetID string) (*Page, error) {
 			return nil, err
 		}
 	}
+	p.events = cdp.NewRingBuffer(1000)
+	p.startEventCollector(ctx)
 	return p, nil
 }
 

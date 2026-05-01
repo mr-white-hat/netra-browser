@@ -9,9 +9,12 @@ import (
 
 // WaitNetworkIdle blocks until there are zero in-flight network requests for `quiet` duration.
 func (p *Page) WaitNetworkIdle(ctx context.Context, quiet time.Duration) error {
-	willBeSent := p.cdp.SubscribeOnTarget(p.sessionID, "Network.requestWillBeSent")
-	finished := p.cdp.SubscribeOnTarget(p.sessionID, "Network.loadingFinished")
-	failed := p.cdp.SubscribeOnTarget(p.sessionID, "Network.loadingFailed")
+	willBeSent := p.addEventSub("Network.requestWillBeSent")
+	defer p.removeEventSub(willBeSent)
+	finished := p.addEventSub("Network.loadingFinished")
+	defer p.removeEventSub(finished)
+	failed := p.addEventSub("Network.loadingFailed")
+	defer p.removeEventSub(failed)
 
 	var mu sync.Mutex
 	inflight := map[string]struct{}{}

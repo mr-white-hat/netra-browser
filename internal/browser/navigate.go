@@ -52,7 +52,8 @@ func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult
 		return nil, fmt.Errorf("unknown wait_until: %s", opts.WaitUntil)
 	}
 
-	events := p.cdp.SubscribeOnTarget(p.sessionID, waitMethod)
+	events := p.addEventSub(waitMethod)
+	defer p.removeEventSub(events)
 
 	raw, err := p.send(ctx, "Page.navigate", map[string]any{"url": opts.URL})
 	if err != nil {
