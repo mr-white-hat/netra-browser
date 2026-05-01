@@ -151,6 +151,22 @@ func (p *Page) PressKey(ctx context.Context, key string) error {
 	return nil
 }
 
+// UploadFile sets the file path on a file input element.
+func (p *Page) UploadFile(ctx context.Context, l Locator, path string) error {
+	id, err := p.Resolve(ctx, l)
+	if err != nil {
+		return err
+	}
+	nodeID, err := p.backendToNodeID(ctx, id)
+	if err != nil {
+		return err
+	}
+	_, err = p.send(ctx, "DOM.setFileInputFiles", map[string]any{
+		"nodeId": nodeID, "files": []string{path},
+	})
+	return err
+}
+
 func (p *Page) backendToNodeID(ctx context.Context, backendID int64) (int64, error) {
 	raw, err := p.send(ctx, "DOM.pushNodesByBackendIdsToFrontend", map[string]any{
 		"backendNodeIds": []int64{backendID},

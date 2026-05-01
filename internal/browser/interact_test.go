@@ -146,3 +146,27 @@ func TestPressKeyDispatchesKeyDownAndUp(t *testing.T) {
 		t.Fatalf("expected 2 dispatches (keyDown+keyUp), got %d", count)
 	}
 }
+
+func TestUploadFile(t *testing.T) {
+	f := &fakeSender{
+		results: map[string]json.RawMessage{
+			"DOM.pushNodesByBackendIdsToFrontend": json.RawMessage(`{"nodeIds":[42]}`),
+		},
+	}
+	p, _ := NewPage(context.Background(), f, "T1")
+	p.snapshot = &Snapshot{byID: map[string]*SnapshotNode{
+		"#a3": {ID: "#a3", BackendNodeID: 3},
+	}}
+	if err := p.UploadFile(context.Background(), Locator{SnapshotID: "#a3"}, "/tmp/x.png"); err != nil {
+		t.Fatal(err)
+	}
+	saw := false
+	for _, c := range f.calls {
+		if c.method == "DOM.setFileInputFiles" {
+			saw = true
+		}
+	}
+	if !saw {
+		t.Fatal("DOM.setFileInputFiles not sent")
+	}
+}
