@@ -79,3 +79,70 @@ func TestClickFailsWhenBackendNotInDocument(t *testing.T) {
 		t.Fatal("expected not_found error")
 	}
 }
+
+func TestHoverDispatchesMouseMoved(t *testing.T) {
+	f := &fakeSender{
+		results: map[string]json.RawMessage{
+			"DOM.pushNodesByBackendIdsToFrontend": json.RawMessage(`{"nodeIds":[42]}`),
+			"DOM.getBoxModel":                     json.RawMessage(`{"model":{"content":[10,20,30,20,30,40,10,40]}}`),
+		},
+	}
+	p, _ := NewPage(context.Background(), f, "T1")
+	p.snapshot = &Snapshot{byID: map[string]*SnapshotNode{
+		"#a1": {ID: "#a1", BackendNodeID: 1},
+	}}
+	if err := p.Hover(context.Background(), Locator{SnapshotID: "#a1"}); err != nil {
+		t.Fatal(err)
+	}
+	saw := false
+	for _, c := range f.calls {
+		if c.method == "Input.dispatchMouseEvent" {
+			saw = true
+		}
+	}
+	if !saw {
+		t.Fatal("Input.dispatchMouseEvent not sent")
+	}
+}
+
+func TestSelectOptionCallsFunctionOn(t *testing.T) {
+	f := &fakeSender{
+		results: map[string]json.RawMessage{
+			"DOM.pushNodesByBackendIdsToFrontend": json.RawMessage(`{"nodeIds":[42]}`),
+			"DOM.resolveNode":                     json.RawMessage(`{"object":{"objectId":"OBJ-1"}}`),
+		},
+	}
+	p, _ := NewPage(context.Background(), f, "T1")
+	p.snapshot = &Snapshot{byID: map[string]*SnapshotNode{
+		"#a1": {ID: "#a1", BackendNodeID: 1},
+	}}
+	if err := p.SelectOption(context.Background(), Locator{SnapshotID: "#a1"}, []string{"red", "blue"}); err != nil {
+		t.Fatal(err)
+	}
+	saw := false
+	for _, c := range f.calls {
+		if c.method == "Runtime.callFunctionOn" {
+			saw = true
+		}
+	}
+	if !saw {
+		t.Fatal("Runtime.callFunctionOn not sent")
+	}
+}
+
+func TestPressKeyDispatchesKeyDownAndUp(t *testing.T) {
+	f := &fakeSender{}
+	p, _ := NewPage(context.Background(), f, "T1")
+	if err := p.PressKey(context.Background(), "Enter"); err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for _, c := range f.calls {
+		if c.method == "Input.dispatchKeyEvent" {
+			count++
+		}
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 dispatches (keyDown+keyUp), got %d", count)
+	}
+}
