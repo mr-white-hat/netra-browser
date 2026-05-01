@@ -1,0 +1,69 @@
+version: 2
+
+project_name: netra-browser
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: netra-browser
+    main: ./cmd/netra-browser
+    binary: netra-browser
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: ["tar.gz"]
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - Merge pull request
+
+brews:
+  - name: netra-browser
+    repository:
+      owner: pavankumar2138
+      name: homebrew-netra-browser
+    homepage: "https://github.com/pavankumar2138/netra-browser"
+    description: "MCP bridge for AI agents to drive a real, logged-in Chrome via CDP"
+    license: "MIT"
+    install: |
+      bin.install "netra-browser"
+    test: |
+      system "#{bin}/netra-browser --version"
+
+release:
+  github:
+    owner: pavankumar2138
+    name: netra-browser
+  draft: true
