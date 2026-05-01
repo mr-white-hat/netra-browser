@@ -1,0 +1,7 @@
+{
+  "nodes": [
+    {"nodeId":"1","role":{"value":"WebArea"},"name":{"value":"Test"},"childIds":["2","3"],"backendDOMNodeId":100},
+    {"nodeId":"2","role":{"value":"button"},"name":{"value":"Click me"},"backendDOMNodeId":101},
+    {"nodeId":"3","role":{"value":"textbox"},"name":{"value":"Email"},"value":{"value":"a@b.c"},"backendDOMNodeId":102}
+  ]
+}
