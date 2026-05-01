@@ -29,8 +29,7 @@ type NavigateResult struct {
 	Snapshot *Snapshot // populated by tool layer if return_snapshot=true
 }
 
-// Navigate issues Page.navigate. The wait_until logic is best-effort in unit tests
-// (event source unwired); Task 4 wires up real event-blocking, Task 5 adds networkidle.
+// Navigate issues Page.navigate and blocks until the requested load event fires.
 func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult, error) {
 	if opts.URL == "" {
 		return nil, fmt.Errorf("URL required")
@@ -38,6 +37,21 @@ func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult
 	if opts.WaitUntil == "" {
 		opts.WaitUntil = WaitLoad
 	}
+
+	var waitMethod string
+	switch opts.WaitUntil {
+	case WaitLoad:
+		waitMethod = "Page.loadEventFired"
+	case WaitDOMContentLoaded:
+		waitMethod = "Page.domContentEventFired"
+	case WaitNetworkIdle:
+		// Plan B Task 5 implements networkidle properly.
+		waitMethod = "Page.loadEventFired"
+	default:
+		return nil, fmt.Errorf("unknown wait_until: %s", opts.WaitUntil)
+	}
+
+	events := p.cdp.SubscribeOnTarget(p.sessionID, waitMethod)
 
 	raw, err := p.send(ctx, "Page.navigate", map[string]any{"url": opts.URL})
 	if err != nil {
@@ -54,5 +68,10 @@ func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult
 		return nil, fmt.Errorf("navigate: %s", resp.ErrorText)
 	}
 
+	select {
+	case <-events:
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 	return &NavigateResult{URL: opts.URL, FrameID: resp.FrameID}, nil
 }

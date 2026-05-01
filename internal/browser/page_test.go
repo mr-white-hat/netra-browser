@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/pavankumar2138/netra-browser/internal/cdp"
 )
 
 type fakeSender struct {
@@ -33,6 +35,11 @@ func (f *fakeSender) SendOnTarget(ctx context.Context, session, method string, p
 }
 func (f *fakeSender) AttachToTarget(ctx context.Context, targetID string) (string, error) {
 	return "S-" + targetID, nil
+}
+func (f *fakeSender) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+	ch := make(chan cdp.BufferedEvent, 1)
+	ch <- cdp.BufferedEvent{} // immediately satisfies the wait
+	return ch
 }
 
 func TestNewPageAttaches(t *testing.T) {

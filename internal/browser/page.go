@@ -5,14 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+
+	"github.com/pavankumar2138/netra-browser/internal/cdp"
 )
 
 // Sender is what Page needs from a CDP transport. *cdp.Client satisfies it.
-// Task 4 will extend this with SubscribeOnTarget for event-blocking waits.
 type Sender interface {
 	Send(ctx context.Context, method string, params any) (json.RawMessage, error)
 	SendOnTarget(ctx context.Context, sessionID, method string, params any) (json.RawMessage, error)
 	AttachToTarget(ctx context.Context, targetID string) (string, error)
+	SubscribeOnTarget(sessionID, method string) chan cdp.BufferedEvent
 }
 
 // Page binds a single target plus its CDP session.
