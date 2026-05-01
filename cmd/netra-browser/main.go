@@ -4,9 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,13 +20,22 @@ import (
 
 const Version = "0.0.1-dev"
 
+type multiFlag []string
+
+func (m *multiFlag) String() string     { return strings.Join(*m, ",") }
+func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }
+
 func main() {
 	var (
 		showVersion = flag.Bool("version", false, "print version and exit")
 		debugURL    = flag.String("debug-url", "http://127.0.0.1:9222", "Chrome remote debugging URL")
 		autoAttach  = flag.Bool("auto-attach", false, "attach to Chrome at startup")
 		lockPath    = flag.String("lock", "", "lock file path (default: ~/.config/netra-browser/active.lock)")
+		listen      = flag.String("listen", "", "HTTP-SSE listen address (e.g. 127.0.0.1:7878). Empty = stdio mode.")
+		token       = flag.String("token", "", "Bearer token for HTTP-SSE auth")
 	)
+	var allowOrigins multiFlag
+	flag.Var(&allowOrigins, "allow-origin", "CORS allowed origin (repeatable)")
 	flag.Parse()
 
 	if *showVersion {
@@ -72,8 +83,35 @@ func main() {
 		}
 	}
 
+	if *listen != "" {
+		if !isLocalListen(*listen) && *token == "" {
+			fmt.Fprintln(os.Stderr, "non-localhost listen requires --token")
+			os.Exit(2)
+		}
+		handler := mcp.NewHTTPHandler(reg, mcp.HTTPOpts{Token: *token, AllowedOrigins: allowOrigins})
+		srv := &http.Server{Addr: *listen, Handler: handler}
+		fmt.Fprintf(os.Stderr, "netra-browser listening on %s\n", *listen)
+		go func() {
+			<-ctx.Done()
+			shutCtx, cancelShut := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancelShut()
+			_ = srv.Shutdown(shutCtx)
+		}()
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Fprintf(os.Stderr, "http: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if err := mcp.Serve(ctx, os.Stdin, os.Stdout, reg); err != nil {
 		fmt.Fprintf(os.Stderr, "serve: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func isLocalListen(addr string) bool {
+	return strings.HasPrefix(addr, "127.0.0.1:") ||
+		strings.HasPrefix(addr, "localhost:") ||
+		strings.HasPrefix(addr, "[::1]:")
 }
