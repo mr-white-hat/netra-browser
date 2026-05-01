@@ -82,3 +82,41 @@ func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult
 	}
 	return &NavigateResult{URL: opts.URL, FrameID: resp.FrameID}, nil
 }
+
+// GoBack navigates one step back in this page's history.
+func (p *Page) GoBack(ctx context.Context) error {
+	return p.historyStep(ctx, -1)
+}
+
+// GoForward navigates one step forward in this page's history.
+func (p *Page) GoForward(ctx context.Context) error {
+	return p.historyStep(ctx, +1)
+}
+
+// Reload reloads the current page.
+func (p *Page) Reload(ctx context.Context) error {
+	_, err := p.send(ctx, "Page.reload", nil)
+	return err
+}
+
+func (p *Page) historyStep(ctx context.Context, delta int) error {
+	raw, err := p.send(ctx, "Page.getNavigationHistory", nil)
+	if err != nil {
+		return err
+	}
+	var hist struct {
+		CurrentIndex int `json:"currentIndex"`
+		Entries      []struct {
+			ID int `json:"id"`
+		} `json:"entries"`
+	}
+	if err := json.Unmarshal(raw, &hist); err != nil {
+		return err
+	}
+	target := hist.CurrentIndex + delta
+	if target < 0 || target >= len(hist.Entries) {
+		return fmt.Errorf("history out of range")
+	}
+	_, err = p.send(ctx, "Page.navigateToHistoryEntry", map[string]any{"entryId": hist.Entries[target].ID})
+	return err
+}
