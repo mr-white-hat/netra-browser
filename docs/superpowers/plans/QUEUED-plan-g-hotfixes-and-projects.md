@@ -45,6 +45,26 @@ Bundles the recovery diagnostic chain into one MCP call so agents don't burn 5 r
 
 Should be implementable by composing existing methods — no new CDP calls.
 
+### 5. Coordinate-based interaction tools (canvas/SVG/drag-drop escape hatch)
+
+Three tools that bypass locator resolution entirely and operate on raw viewport pixels. Reuse the same `Input.dispatchMouseEvent` path that `browser_click` already invokes internally.
+
+- `browser_click_at {x: number, y: number, target_id?, button?: "left"|"right"|"middle" (default "left"), click_count?: int (default 1)}` → `{ok}`
+- `browser_hover_at {x: number, y: number, target_id?}` → `{ok}`
+- `browser_drag {from: {x,y}, to: {x,y}, target_id?, button?: "left"|"middle" (default "left"), steps?: int (default 10)}` → `{ok}` (interpolated mouseMoved events between from and to so the drag registers in apps that listen to drag events)
+
+Document explicitly in `docs/tools.md`: these are the escape hatch for canvas, SVG, games, drag-drop, and screenshot-driven coordinate clicks. The accessibility/snapshot_id locators remain the recommended default for everything else because they survive viewport/DOM changes.
+
+### 6. Speed-default flags (server-side)
+
+Reduce default cost per call so agents don't have to remember to override:
+
+- `--default-wait-until <load|domcontentloaded|networkidle>` (default `domcontentloaded`, was `load`).
+- `--default-call-timeout-ms <int>` (default 5000, was 30000) — applied to `browser_wait_for`, `browser_navigate` event waits.
+- `--snapshot-prune-aggressive` flag: when set, `browser_snapshot` strips `WebArea`/`generic`/`group` containers with no name AND no children's names, halving typical snapshot size.
+
+These are additive — explicit per-call args still win. Default change is one-line in `internal/browser/navigate.go` and `events.go`.
+
 ### 5. Trinetra prompt + porting report addendum
 
 Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md` — create as part of this plan) with:
@@ -52,7 +72,7 @@ Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md`
 - The recovery policy (see `docs/integrations/trinetra-recovery-policy.md`).
 - New tools' surface.
 
-## Tasks (estimated 8-10)
+## Tasks (estimated 12-14)
 
 1. Fix `browser_navigate` no-active-target check + tests.
 2. Fix `browser_eval` return shape + tests.
@@ -61,9 +81,11 @@ Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md`
 5. Project sidecar package (`internal/profile/project.go`) + tests.
 6. Wire project filtering into Session + browser_list_tabs/new_tab; add adopt/release/list_projects tools + tests.
 7. Implement `browser_diagnose` composite tool + test.
-8. Update e2e tests to exercise project isolation (two bridges, one Chrome, no cross-talk).
-9. Update README + integration prompts.
-10. Verify + tag `plan-g-hotfixes-projects`.
+8. Implement coordinate tools: `browser_click_at`, `browser_hover_at`, `browser_drag` + tests.
+9. Add speed-default flags (`--default-wait-until`, `--default-call-timeout-ms`, `--snapshot-prune-aggressive`) + tests.
+10. Update e2e tests to exercise project isolation (two bridges, one Chrome, no cross-talk).
+11. Update README + integration prompts (RECOVERY POLICY + LIVE ADAPTATION POLICY + SPEED POLICY all documented in `docs/integrations/`).
+12. Verify + tag `plan-g-hotfixes-projects`.
 
 ## Wishlist captured from Trinetra feedback (DEFER — not Plan G)
 
