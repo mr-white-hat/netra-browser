@@ -28,13 +28,8 @@ func TestE2E_LaunchMode(t *testing.T) {
 	stdout, _ := bin.StdoutPipe()
 	stderr, _ := bin.StderrPipe()
 	go io.Copy(os.Stderr, stderr)
-	if err := bin.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		bin.Process.Kill()
-		bin.Process.Wait()
-	}()
+	startInGroup(t, bin)
+	defer killGroup(bin)
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1<<20), 16<<20)

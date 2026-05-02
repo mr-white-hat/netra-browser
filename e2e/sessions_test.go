@@ -49,14 +49,9 @@ func TestE2E_SessionRoundTrip(t *testing.T) {
 		cmd := exec.Command(chrome, "--headless=new", "--no-sandbox", "--disable-gpu",
 			fmt.Sprintf("--remote-debugging-port=%d", port), "--user-data-dir="+dir, "about:blank")
 		cmd.Stderr = os.Stderr
-		if err := cmd.Start(); err != nil {
-			t.Fatal(err)
-		}
+		startInGroup(t, cmd)
 		waitForChrome(t, port, 10*time.Second)
-		return port, func() {
-			cmd.Process.Kill()
-			cmd.Process.Wait()
-		}
+		return port, func() { killGroup(cmd) }
 	}
 
 	mkBridge := func(t *testing.T, port int) (cmd *exec.Cmd, scanner *bufio.Scanner, stdin io.Writer, kill func()) {
@@ -71,15 +66,10 @@ func TestE2E_SessionRoundTrip(t *testing.T) {
 		stdout, _ := cmd.StdoutPipe()
 		stderrPipe, _ := cmd.StderrPipe()
 		go io.Copy(os.Stderr, stderrPipe)
-		if err := cmd.Start(); err != nil {
-			t.Fatal(err)
-		}
+		startInGroup(t, cmd)
 		s := bufio.NewScanner(stdout)
 		s.Buffer(make([]byte, 1<<20), 16<<20)
-		return cmd, s, stdinPipe, func() {
-			cmd.Process.Kill()
-			cmd.Process.Wait()
-		}
+		return cmd, s, stdinPipe, func() { killGroup(cmd) }
 	}
 
 	send := func(s *bufio.Scanner, w io.Writer, id int, method string, params any) map[string]any {

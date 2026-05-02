@@ -36,10 +36,8 @@ func TestE2E_HighLevelTasks(t *testing.T) {
 		fmt.Sprintf("--remote-debugging-port=%d", port),
 		"--user-data-dir="+userDir, "about:blank")
 	chromeCmd.Stderr = os.Stderr
-	if err := chromeCmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer chromeCmd.Process.Kill()
+	startInGroup(t, chromeCmd)
+	defer killGroup(chromeCmd)
 	waitForChrome(t, port, 10*time.Second)
 
 	bin := exec.Command("go", "run", "../cmd/netra-browser",
@@ -50,10 +48,9 @@ func TestE2E_HighLevelTasks(t *testing.T) {
 	stdout, _ := bin.StdoutPipe()
 	stderrPipe, _ := bin.StderrPipe()
 	go io.Copy(os.Stderr, stderrPipe)
-	if err := bin.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { bin.Process.Kill(); bin.Process.Wait() }()
+	if bin.Stderr == nil { bin.Stderr = os.Stderr }
+	startInGroup(t, bin)
+	defer killGroup(bin)
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1<<20), 16<<20)

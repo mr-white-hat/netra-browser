@@ -38,10 +38,8 @@ func TestE2E_FormSubmission(t *testing.T) {
 		"--user-data-dir="+userDir, "about:blank",
 	)
 	chromeCmd.Stderr = os.Stderr
-	if err := chromeCmd.Start(); err != nil {
-		t.Fatalf("start chrome: %v", err)
-	}
-	defer chromeCmd.Process.Kill()
+	startInGroup(t, chromeCmd)
+	defer killGroup(chromeCmd)
 	waitForChrome(t, port, 10*time.Second)
 
 	lockPath := filepath.Join(userDir, "active.lock")

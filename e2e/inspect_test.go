@@ -34,10 +34,8 @@ func TestE2E_InspectionStack(t *testing.T) {
 		"--user-data-dir="+userDir, "about:blank",
 	)
 	chromeCmd.Stderr = os.Stderr
-	if err := chromeCmd.Start(); err != nil {
-		t.Fatalf("start chrome: %v", err)
-	}
-	defer chromeCmd.Process.Kill()
+	startInGroup(t, chromeCmd)
+	defer killGroup(chromeCmd)
 	waitForChrome(t, port, 10*time.Second)
 
 	lockPath := filepath.Join(userDir, "active.lock")
@@ -48,10 +46,8 @@ func TestE2E_InspectionStack(t *testing.T) {
 	stdin, _ := bin.StdinPipe()
 	stdout, _ := bin.StdoutPipe()
 	bin.Stderr = os.Stderr
-	if err := bin.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer bin.Process.Kill()
+	startInGroup(t, bin)
+	defer killGroup(bin)
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1<<20), 16<<20)

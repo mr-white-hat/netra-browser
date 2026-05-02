@@ -32,7 +32,11 @@ func (h *LaunchHandle) Stop() error {
 	if h == nil || h.cmd == nil || h.cmd.Process == nil {
 		return nil
 	}
-	_ = h.cmd.Process.Kill()
+	// Kill the entire process group so Chrome's renderer/GPU/zygote
+	// children die with the parent. Without this, child processes
+	// survive briefly after the parent's Kill() returns, holding
+	// file handles in the user-data-dir.
+	_ = killProcessGroup(h.cmd.Process.Pid)
 	_, _ = h.cmd.Process.Wait()
 	return nil
 }
@@ -71,6 +75,7 @@ func Launch(opts LaunchOpts) (*LaunchHandle, error) {
 
 	cmd := exec.Command(bin, args...)
 	cmd.Stderr = os.Stderr
+	setProcessGroup(cmd)
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("start chrome: %w", err)
 	}

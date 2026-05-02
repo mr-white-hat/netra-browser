@@ -24,10 +24,8 @@ func TestE2E_HTTPTransport(t *testing.T) {
 		fmt.Sprintf("--remote-debugging-port=%d", port),
 		"--user-data-dir="+userDir, "about:blank")
 	chromeCmd.Stderr = os.Stderr
-	if err := chromeCmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	defer chromeCmd.Process.Kill()
+	startInGroup(t, chromeCmd)
+	defer killGroup(chromeCmd)
 	waitForChrome(t, port, 10*time.Second)
 
 	httpPort := freePort(t)
@@ -36,31 +34,29 @@ func TestE2E_HTTPTransport(t *testing.T) {
 		"--debug-url", fmt.Sprintf("http://127.0.0.1:%d", port),
 		"--listen", fmt.Sprintf("127.0.0.1:%d", httpPort),
 	)
-	// Use a pipe for stderr so we can close it on cleanup, preventing
-	// the "Test I/O incomplete" warning caused by go run's child process
-	// keeping the inherited stderr fd open after the parent is killed.
+	// Drain stderr through a pipe so the bridge subprocess's children don't
+	// keep an inherited fd open after we kill the group.
 	stderrPipe, _ := bin.StderrPipe()
 	go func() {
-		if stderrPipe != nil {
-			buf := make([]byte, 4096)
-			for {
-				n, err := stderrPipe.Read(buf)
-				if n > 0 {
-					_, _ = os.Stderr.Write(buf[:n])
-				}
-				if err != nil {
-					return
-				}
+		if stderrPipe == nil {
+			return
+		}
+		buf := make([]byte, 4096)
+		for {
+			n, err := stderrPipe.Read(buf)
+			if n > 0 {
+				_, _ = os.Stderr.Write(buf[:n])
+			}
+			if err != nil {
+				return
 			}
 		}
 	}()
-	if err := bin.Start(); err != nil {
-		t.Fatal(err)
-	}
+	startInGroup(t, bin)
+	defer killGroup(bin)
 	defer func() {
-		bin.Process.Kill()
 		if stderrPipe != nil {
-			stderrPipe.Close()
+			_ = stderrPipe.Close()
 		}
 	}()
 

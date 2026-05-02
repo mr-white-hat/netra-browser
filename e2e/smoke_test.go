@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
 
 func findChrome(t *testing.T) string {
@@ -50,6 +52,29 @@ func waitForChrome(t *testing.T, port int, timeout time.Duration) {
 	t.Fatal("chrome did not come up")
 }
 
+// startInGroup spawns a subprocess in its own process group so killGroup
+// can take down the whole tree. Required for chromium (forks
+// renderer/GPU/zygote children that survive a plain Process.Kill, holding
+// file handles in --user-data-dir and breaking t.TempDir cleanup) and for
+// `go run` (which spawns a separate compiled child).
+func startInGroup(t *testing.T, cmd *exec.Cmd) {
+	t.Helper()
+	profile.SetProcessGroup(cmd)
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("start subprocess: %v", err)
+	}
+}
+
+// killGroup signals the entire process tree, then reaps the parent.
+// Safe to call after the parent has already exited.
+func killGroup(cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	_ = profile.KillProcessGroup(cmd.Process.Pid)
+	_, _ = cmd.Process.Wait()
+}
+
 func TestE2E_AttachAndListTabs(t *testing.T) {
 	chrome := findChrome(t)
 	port := freePort(t)
@@ -64,10 +89,8 @@ func TestE2E_AttachAndListTabs(t *testing.T) {
 		"about:blank",
 	)
 	chromeCmd.Stderr = os.Stderr
-	if err := chromeCmd.Start(); err != nil {
-		t.Fatalf("start chrome: %v", err)
-	}
-	defer chromeCmd.Process.Kill()
+	startInGroup(t, chromeCmd)
+	defer killGroup(chromeCmd)
 	waitForChrome(t, port, 10*time.Second)
 
 	lockPath := userDir + "/active.lock"
@@ -78,10 +101,8 @@ func TestE2E_AttachAndListTabs(t *testing.T) {
 	stdin, _ := bin.StdinPipe()
 	stdout, _ := bin.StdoutPipe()
 	bin.Stderr = os.Stderr
-	if err := bin.Start(); err != nil {
-		t.Fatalf("start bridge: %v", err)
-	}
-	defer bin.Process.Kill()
+	startInGroup(t, bin)
+	defer killGroup(bin)
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1024*1024), 16*1024*1024)
