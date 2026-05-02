@@ -48,7 +48,9 @@ func TestE2E_HighLevelTasks(t *testing.T) {
 	stdout, _ := bin.StdoutPipe()
 	stderrPipe, _ := bin.StderrPipe()
 	go io.Copy(os.Stderr, stderrPipe)
-	if bin.Stderr == nil { bin.Stderr = os.Stderr }
+	if bin.Stderr == nil {
+		bin.Stderr = os.Stderr
+	}
 	startInGroup(t, bin)
 	defer killGroup(bin)
 

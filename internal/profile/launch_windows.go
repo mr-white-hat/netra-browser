@@ -27,5 +27,5 @@ func KillProcessGroup(pid int) error {
 	return p.Kill()
 }
 
-func setProcessGroup(cmd *exec.Cmd) { SetProcessGroup(cmd) }
+func setProcessGroup(cmd *exec.Cmd)  { SetProcessGroup(cmd) }
 func killProcessGroup(pid int) error { return KillProcessGroup(pid) }
