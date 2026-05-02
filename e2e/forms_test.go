@@ -43,7 +43,7 @@ func TestE2E_FormSubmission(t *testing.T) {
 	waitForChrome(t, port, 10*time.Second)
 
 	lockPath := filepath.Join(userDir, "active.lock")
-	bin := exec.Command("go", "run", "../cmd/netra-browser",
+	bin := exec.Command(binPath,
 		"--lock", lockPath,
 		"--debug-url", fmt.Sprintf("http://127.0.0.1:%d", port),
 	)

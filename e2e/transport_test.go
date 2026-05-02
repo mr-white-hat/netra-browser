@@ -29,7 +29,7 @@ func TestE2E_HTTPTransport(t *testing.T) {
 	waitForChrome(t, port, 10*time.Second)
 
 	httpPort := freePort(t)
-	bin := exec.Command("go", "run", "../cmd/netra-browser",
+	bin := exec.Command(binPath,
 		"--lock", filepath.Join(userDir, "active.lock"),
 		"--debug-url", fmt.Sprintf("http://127.0.0.1:%d", port),
 		"--listen", fmt.Sprintf("127.0.0.1:%d", httpPort),

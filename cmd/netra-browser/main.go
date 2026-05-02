@@ -39,6 +39,8 @@ func main() {
 		profileDir      = flag.String("profile-dir", "", "user-data-dir for launched Chrome (default: platform default)")
 		profileSnapshot = flag.Bool("profile-snapshot", false, "copy profile to a temp dir before launching")
 		launchHeadless  = flag.Bool("launch-headless", false, "pass --headless=new when launching")
+		launchNoSandbox = flag.Bool("launch-no-sandbox", false, "pass --no-sandbox when launching (required in CI/Docker)")
+		launchExtraArgs = flag.String("launch-extra-args", "", "space-separated extra args for the launched Chrome (e.g. --proxy-server=http://127.0.0.1:8080)")
 	)
 	var allowOrigins multiFlag
 	flag.Var(&allowOrigins, "allow-origin", "CORS allowed origin (repeatable)")
@@ -104,7 +106,14 @@ func main() {
 			}
 			dir = td
 		}
-		h, err := profile.Launch(profile.LaunchOpts{UserDataDir: dir, Headless: *launchHeadless})
+		extraArgs := []string{}
+		if *launchNoSandbox {
+			extraArgs = append(extraArgs, "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage")
+		}
+		if *launchExtraArgs != "" {
+			extraArgs = append(extraArgs, strings.Fields(*launchExtraArgs)...)
+		}
+		h, err := profile.Launch(profile.LaunchOpts{UserDataDir: dir, Headless: *launchHeadless, Args: extraArgs})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "launch: %v\n", err)
 			os.Exit(1)

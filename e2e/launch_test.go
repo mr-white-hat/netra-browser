@@ -15,12 +15,16 @@ import (
 )
 
 func TestE2E_LaunchMode(t *testing.T) {
+	// Either chromium or google-chrome works; defer to findChrome's lookup
+	// (covers the CI case where setup-chrome installs google-chrome).
 	if _, err := exec.LookPath("chromium"); err != nil {
-		t.Skip("no chromium")
+		if _, err2 := exec.LookPath("google-chrome"); err2 != nil {
+			t.Skip("no chromium / google-chrome in PATH")
+		}
 	}
 	tmp := t.TempDir()
-	bin := exec.Command("go", "run", "../cmd/netra-browser",
-		"--launch", "--launch-headless",
+	bin := exec.Command(binPath,
+		"--launch", "--launch-headless", "--launch-no-sandbox",
 		"--profile-dir", filepath.Join(tmp, "profile"),
 		"--lock", filepath.Join(tmp, "active.lock"),
 	)

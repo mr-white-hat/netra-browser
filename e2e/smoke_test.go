@@ -10,12 +10,38 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
+
+// binPath is the absolute path to the netra-browser binary built once by
+// TestMain. Tests use this instead of `go run ../cmd/netra-browser` for two
+// reasons: (1) faster (no per-test compile) and (2) avoids `go run`'s mod
+// cache writes, which break t.TempDir cleanup when tests override $HOME.
+var binPath string
+
+func TestMain(m *testing.M) {
+	tmp, err := os.MkdirTemp("", "netra-bin-")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "TestMain: mkdir: %v\n", err)
+		os.Exit(1)
+	}
+	defer os.RemoveAll(tmp)
+
+	binPath = filepath.Join(tmp, "netra-browser")
+	build := exec.Command("go", "build", "-o", binPath, "../cmd/netra-browser")
+	build.Stderr = os.Stderr
+	build.Stdout = os.Stderr
+	if err := build.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "TestMain: build: %v\n", err)
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
 
 func findChrome(t *testing.T) string {
 	for _, name := range []string{"chromium", "google-chrome", "chrome"} {
@@ -94,7 +120,7 @@ func TestE2E_AttachAndListTabs(t *testing.T) {
 	waitForChrome(t, port, 10*time.Second)
 
 	lockPath := userDir + "/active.lock"
-	bin := exec.Command("go", "run", "../cmd/netra-browser",
+	bin := exec.Command(binPath,
 		"--lock", lockPath,
 		"--debug-url", fmt.Sprintf("http://127.0.0.1:%d", port),
 	)

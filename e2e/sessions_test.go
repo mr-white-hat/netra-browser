@@ -57,7 +57,7 @@ func TestE2E_SessionRoundTrip(t *testing.T) {
 	mkBridge := func(t *testing.T, port int) (cmd *exec.Cmd, scanner *bufio.Scanner, stdin io.Writer, kill func()) {
 		t.Helper()
 		bridgeIdx++
-		cmd = exec.Command("go", "run", "../cmd/netra-browser",
+		cmd = exec.Command(binPath,
 			"--lock", filepath.Join(bridgeHome, fmt.Sprintf("active-%d.lock", bridgeIdx)),
 			"--debug-url", fmt.Sprintf("http://127.0.0.1:%d", port),
 		)
