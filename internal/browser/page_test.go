@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 type fakeSender struct {

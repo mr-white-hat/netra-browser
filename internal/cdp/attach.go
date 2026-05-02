@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pavankumar2138/netra-browser/internal/profile"
+	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
 
 // ParseDebugURL extracts host+port from inputs like "http://127.0.0.1:9222" or "127.0.0.1:9222".

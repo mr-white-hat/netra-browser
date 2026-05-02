@@ -588,7 +588,7 @@ Replace the existing `Sender` interface with:
 ```go
 import (
 	// ...existing...
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 // Sender is what Page needs from a CDP transport. *cdp.Client satisfies it.
@@ -615,7 +615,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 // pumpableSender lets a test push events at will.
@@ -764,7 +764,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 func TestNetworkIdleReturnsAfterQuiet(t *testing.T) {
@@ -2006,7 +2006,7 @@ Add to `internal/mcp/session.go`:
 ```go
 import (
 	// ...
-	"github.com/pavankumar2138/netra-browser/internal/browser"
+	"github.com/mr-white-hat/netra-browser/internal/browser"
 )
 
 // in Session struct:
@@ -2063,8 +2063,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 // fakeFullSender is the test double satisfying browser.Sender.
@@ -2126,8 +2126,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pavankumar2138/netra-browser/internal/browser"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/browser"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserNav(reg *mcp.Registry, sess *mcp.Session) {
@@ -2259,8 +2259,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pavankumar2138/netra-browser/internal/browser"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/browser"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
@@ -2305,8 +2305,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pavankumar2138/netra-browser/internal/browser"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/browser"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {

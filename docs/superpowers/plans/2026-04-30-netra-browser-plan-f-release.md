@@ -613,9 +613,9 @@ changelog:
 brews:
   - name: netra-browser
     repository:
-      owner: pavankumar2138
+      owner: mr-white-hat
       name: homebrew-netra-browser
-    homepage: "https://github.com/pavankumar2138/netra-browser"
+    homepage: "https://github.com/mr-white-hat/netra-browser"
     description: "MCP bridge for AI agents to drive a real, logged-in Chrome via CDP"
     license: "MIT"
     install: |
@@ -625,7 +625,7 @@ brews:
 
 release:
   github:
-    owner: pavankumar2138
+    owner: mr-white-hat
     name: netra-browser
   draft: true
 ```
@@ -769,7 +769,7 @@ After Plan F: project is shippable. Final tally:
 - ⚠️ Demo gif — not in plan; flag for follow-up. The README references it but the file isn't created. Note as known TODO at the bottom of the README, OR drop the gif reference.
 
 **Known follow-ups left for the user:**
-- Replace `<user>` placeholder in README, .goreleaser.yaml with real GitHub username (the plan uses `pavankumar2138` as a default; verify before tagging a release).
+- Replace `<user>` placeholder in README, .goreleaser.yaml with real GitHub username (the plan uses `mr-white-hat` as a default; verify before tagging a release).
 - Demo gif (record on first internal use).
 - Create the `homebrew-netra-browser` tap repo on GitHub.
 - Push the first version tag (`v0.1.0`) to trigger GoReleaser.

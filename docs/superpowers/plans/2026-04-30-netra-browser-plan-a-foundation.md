@@ -51,7 +51,7 @@ Test files (`_test.go`) sit alongside their subjects.
 ```bash
 cd /home/mrwhitehat/ClaudePlaywright
 git init
-git config user.email "pavankumar2138@gmail.com" || true
+git config user.email "mr-white-hat@gmail.com" || true
 ```
 
 - [ ] **Step 2: Create `.gitignore`**
@@ -79,7 +79,7 @@ coverage.out
 
 ```bash
 cd /home/mrwhitehat/ClaudePlaywright
-go mod init github.com/pavankumar2138/netra-browser
+go mod init github.com/mr-white-hat/netra-browser
 go get github.com/gorilla/websocket@latest
 ```
 
@@ -1706,7 +1706,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func TestMetaHealthDetached(t *testing.T) {
@@ -1756,7 +1756,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 // MetaDeps holds dependencies the meta_* tools may need.
@@ -1906,7 +1906,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pavankumar2138/netra-browser/internal/profile"
+	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
 
 // ParseDebugURL extracts host+port from inputs like "http://127.0.0.1:9222" or "127.0.0.1:9222".
@@ -2006,7 +2006,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 type fakeCDP struct {
@@ -2136,7 +2136,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
@@ -2285,10 +2285,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp/tools"
-	"github.com/pavankumar2138/netra-browser/internal/profile"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp/tools"
+	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
 
 const Version = "0.0.1-dev"

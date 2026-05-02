@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 func TestSessionAttachDetach(t *testing.T) {

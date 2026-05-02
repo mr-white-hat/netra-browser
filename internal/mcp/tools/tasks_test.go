@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func TestCaptureHARTool(t *testing.T) {

@@ -70,7 +70,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 func TestPageBuffersEventsOnAttach(t *testing.T) {
@@ -165,7 +165,7 @@ Modify `internal/browser/page.go`:
 ```go
 import (
 	// ...existing
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 type Page struct {
@@ -191,7 +191,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 // Methods the page subscribes to on attach.
@@ -907,8 +907,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserEvents(reg *mcp.Registry, sess *mcp.Session) {
@@ -1119,7 +1119,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func TestWaitForToolTimeout(t *testing.T) {

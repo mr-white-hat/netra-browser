@@ -1,4 +1,4 @@
-module github.com/pavankumar2138/netra-browser
+module github.com/mr-white-hat/netra-browser
 
 go 1.26.1
 

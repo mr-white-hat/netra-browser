@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 // Sender is what Page needs from a CDP transport. *cdp.Client satisfies it.

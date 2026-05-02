@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 // collectedEvents is the fixed set the page subscribes to on attach.

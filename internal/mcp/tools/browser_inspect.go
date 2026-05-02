@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pavankumar2138/netra-browser/internal/browser"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/browser"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {

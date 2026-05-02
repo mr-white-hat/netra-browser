@@ -849,8 +849,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
-	"github.com/pavankumar2138/netra-browser/internal/profile"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
 
 func RegisterSessionTasks(reg *mcp.Registry, sess *mcp.Session) {

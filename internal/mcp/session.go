@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pavankumar2138/netra-browser/internal/browser"
+	"github.com/mr-white-hat/netra-browser/internal/browser"
 )
 
 // CDPSender is the interface the session holds onto.

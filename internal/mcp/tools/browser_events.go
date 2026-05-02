@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 func RegisterBrowserEvents(reg *mcp.Registry, sess *mcp.Session) {

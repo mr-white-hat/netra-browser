@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
 )
 
 func TestWaitForDownloadCompletes(t *testing.T) {

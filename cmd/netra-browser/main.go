@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp/tools"
-	"github.com/pavankumar2138/netra-browser/internal/profile"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp/tools"
+	"github.com/mr-white-hat/netra-browser/internal/profile"
 )
 
 const Version = "0.0.1-dev"

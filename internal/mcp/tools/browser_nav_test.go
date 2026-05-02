@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pavankumar2138/netra-browser/internal/cdp"
-	"github.com/pavankumar2138/netra-browser/internal/mcp"
+	"github.com/mr-white-hat/netra-browser/internal/cdp"
+	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
 
 // fakeFullSender satisfies both mcp.CDPSender and browser.Sender so Session.Page works.
