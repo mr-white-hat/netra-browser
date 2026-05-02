@@ -1,7 +1,7 @@
 # Plan G — Hotfixes + Project Groups + Diagnose (QUEUED)
 
 > **Status:** queued, not started. Ground-truth scope below for whoever picks this up next.
-> **Source of issues:** Trinetra porting feedback from 2026-05-02 (`~/BugBounty/Tools/playwright/PORTING-REPORT-NETRA.md`) plus follow-up on agent recovery loops.
+> **Source of issues:** field integration testing with a third-party MCP agent during 2026-05-02 (see [`docs/integrations/v1-field-learnings.md`](../../integrations/v1-field-learnings.md)) plus follow-up on agent recovery loops.
 > **Builds on:** `plan-f-release` tag.
 
 ## In scope
@@ -128,11 +128,11 @@ Two new tools that turn a successful interaction sequence into a deterministic, 
 
 **Out of scope here:** auto-recording every action transparently. Plan H may add an `--auto-record <recipe-name>` flag that wraps every tool call into a recipe. v1 of the feature requires explicit `task_record_recipe` so the agent decides what's worth saving.
 
-### 5. Trinetra prompt + porting report addendum
+### 5. Integration prompts addendum
 
-Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md` — create as part of this plan) with:
-- The `--project <engagement>` convention.
-- The recovery policy (see `docs/integrations/trinetra-recovery-policy.md`).
+Update the integration-prompt artifacts in `docs/integrations/` (create as part of this plan) with:
+- The `--project <name>` convention.
+- The recovery / live-adaptation / speed policies (already drafted in `docs/integrations/v1-field-learnings.md`).
 - New tools' surface.
 
 ## Tasks (estimated 16-18)

@@ -99,7 +99,7 @@ Replace the README stub with the full pitch.
 
 > **Bring your own Chrome — the missing MCP bridge for AI agents that need a real, logged-in browser.**
 
-`netra-browser` is a single-binary Go bridge that connects AI agents (Claude Code, Claude Desktop, Trinetra, anything speaking [MCP](https://modelcontextprotocol.io)) to your **real Chrome** — the one with your cookies, MFA, Burp proxy, and installed extensions. It exposes 30+ MCP tools for navigation, snapshotting, interaction, network capture, and session persistence.
+`netra-browser` is a single-binary Go bridge that connects AI agents (Claude Code, Claude Desktop, Cursor, Gemini, anything speaking [MCP](https://modelcontextprotocol.io)) to your **real Chrome** — the one with your cookies, MFA, Burp proxy, and installed extensions. It exposes 30+ MCP tools for navigation, snapshotting, interaction, network capture, and session persistence.
 
 ## Why?
 
@@ -436,7 +436,7 @@ Use case: log in to a site once (with MFA), save the session, then have an agent
 
 Open Chrome, log in to the target site normally (entering MFA codes if required).
 
-In your MCP client (Claude Desktop, Trinetra, etc.), invoke:
+In your MCP client (Claude Desktop, Claude Code, etc.), invoke:
 
 ```jsonc
 // 1. Attach to the running Chrome
@@ -507,9 +507,9 @@ browser_get_recent_events: {"types": ["network_request"]}
 // Filter for the request that contains the JWT in Authorization headers.
 ```
 
-## Trinetra integration
+## Integration with an external bug-bounty agent
 
-Run `netra-browser --listen 127.0.0.1:7878 --token $TOKEN` and have Trinetra POST to `/rpc`. The bridge stays neutral — bug-bounty workflows live in Trinetra, this is the browser layer they consume.
+Run `netra-browser --listen 127.0.0.1:7878 --token $TOKEN` and have your agent POST to `/rpc`. The bridge stays neutral — domain-specific workflows live in your agent; this is just the browser layer they consume.
 ```
 
 - [ ] **Step 4:** Create `examples/e2e-qa.md`:

@@ -9,7 +9,7 @@ supersedes: BRAINSTORM-DRAFT.md
 
 ## Overview
 
-`netra-browser` is a single-binary Go bridge that attaches to (or launches) a real Chrome via the Chrome DevTools Protocol and exposes browser primitives + high-level tasks over MCP. It targets AI agents (Trinetra, Claude Code, Claude Desktop, Claude.ai) that need to drive the user's actual logged-in browser — cookies, MFA, Burp proxy, installed extensions intact.
+`netra-browser` is a single-binary Go bridge that attaches to (or launches) a real Chrome via the Chrome DevTools Protocol and exposes browser primitives + high-level tasks over MCP. It targets AI agents (Claude Code, Claude Desktop, Cursor, Gemini, custom MCP clients) that need to drive the user's actual logged-in browser — cookies, MFA, corporate proxy, installed extensions intact.
 
 **Tagline:** "Bring your own Chrome — the missing MCP bridge for AI agents that need a real, logged-in browser."
 
@@ -19,7 +19,7 @@ supersedes: BRAINSTORM-DRAFT.md
 - Cross-platform: Linux, macOS, Windows on amd64 and arm64.
 - Single static binary, no runtime dependencies.
 - Token-economical: opt-in snapshots, server-side event buffering, no surprise streaming costs.
-- Neutral codebase. Bug-bounty workflows live in Trinetra and consume this over MCP.
+- Neutral codebase. Domain-specific workflows (bug bounty, QA, RPA, scraping) live in external agents and consume this over MCP.
 
 ## Non-goals (v1)
 
@@ -221,7 +221,7 @@ All tool errors return:
 
 ### stdio (default)
 
-No auth. Process boundary IS the auth. Used by Claude Desktop, Claude Code, Trinetra subprocess.
+No auth. Process boundary IS the auth. Used by Claude Desktop, Claude Code, and any local MCP client subprocess.
 
 ### HTTP-SSE
 

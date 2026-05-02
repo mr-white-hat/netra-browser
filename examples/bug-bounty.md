@@ -31,6 +31,6 @@ browser_get_recent_events: {"types": ["network_request"]}
 // Filter for the request that contains the JWT in Authorization headers.
 ```
 
-## Trinetra integration
+## Integration with an external bug-bounty agent
 
-Run `netra-browser --listen 127.0.0.1:7878 --token $TOKEN` and have Trinetra POST to `/rpc`. The bridge stays neutral — bug-bounty workflows live in Trinetra, this is the browser layer they consume.
+Run `netra-browser --listen 127.0.0.1:7878 --token $TOKEN` and have your agent POST to `/rpc`. The bridge stays neutral — domain-specific workflows (recon orchestration, scope checks, loot management, vulnerability scanners) live in your agent; this is just the browser layer they consume.

@@ -6,7 +6,7 @@ Use case: log in to a site once (with MFA), save the session, then have an agent
 
 Open Chrome, log in to the target site normally (entering MFA codes if required).
 
-In your MCP client (Claude Desktop, Trinetra, etc.), invoke:
+In your MCP client (Claude Desktop, Claude Code, etc.), invoke:
 
 ```jsonc
 // 1. Attach to the running Chrome

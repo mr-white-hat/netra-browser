@@ -12,7 +12,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22"
-      - run: sudo apt-get update && sudo apt-get install -y chromium
+      # The Ubuntu 24.04 `chromium` package is a snap-installer wrapper that
+      # requires snap-store access (blocked on GitHub-hosted runners). Use
+      # browser-actions/setup-chrome to install the real Chrome .deb from
+      # Google's stable channel. After install, `google-chrome` is on PATH —
+      # e2e/smoke_test.go's findChrome() already handles that name.
+      - uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
       - run: go test ./...
       - run: go test -tags e2e ./e2e/... -timeout 300s
       - run: go vet ./...
