@@ -65,6 +65,69 @@ Reduce default cost per call so agents don't have to remember to override:
 
 These are additive — explicit per-call args still win. Default change is one-line in `internal/browser/navigate.go` and `events.go`.
 
+### 7. Network response/request bodies in events
+
+Currently `browser_get_recent_events` exposes only network METADATA (URL, method, headers, status). Bodies require the agent to round-trip through `browser_eval` or set up its own observation. CDP supports `Network.getResponseBody` and `Network.getRequestPostData` after enabling the Network domain.
+
+**New args on `browser_get_recent_events`:** `{include_bodies?: bool, body_max_size?: int (default 64KB)}`. When set, augment each `network_request`/`network_response` event with `request_body?` and `response_body?` fields. Bodies larger than `body_max_size` truncated with a `truncated: true` marker.
+
+**Why:** unblocks agents doing API discovery, integration testing, debugging, data extraction, or any workflow where they need to see what the page actually fetched/sent. Today most agents work around this by running parallel `curl` probes — wasteful and stateless.
+
+**Cost:** size-limited and opt-in, so default behavior unchanged.
+
+### 8. Action-diff helper (`task_action_diff`)
+
+Composite tool that takes one tool call as an argument, snapshots state before, executes, snapshots after, and returns the diff. Removes the "what just happened?" reasoning turn agents currently need after each significant action.
+
+**Args:** `{action: {tool: string, args: object}, target_id?, capture?: ["url","cookies","console","network","dom_summary"]}`
+**Returns:**
+```json
+{
+  "ok": true,
+  "url_changed": true,
+  "url_before": "...", "url_after": "...",
+  "new_cookies": [...],
+  "removed_cookies": [...],
+  "new_console_messages": [...],
+  "new_network_requests": [...],
+  "dom_summary_changed": true
+}
+```
+
+`dom_summary` defaults to a hash of the snapshot tree's role/name pairs — cheap to compute, change-sensitive, doesn't need to ship the tree.
+
+### 9. Workflow recipe save/replay
+
+Two new tools that turn a successful interaction sequence into a deterministic, replayable JSON recipe. The first time the agent figures out a flow (e.g. consent banner → login → MFA prompt → dashboard), `task_record_recipe` captures the action sequence. On subsequent runs, `task_replay_recipe` executes the saved JSON without the agent having to rediscover.
+
+**Tools:**
+- `task_record_recipe {name, actions: [{tool, args}], success_marker?: {locator | url_pattern | text}, target_id?}` → `{ok, recipe_path}` — saves to `~/.config/netra-browser/recipes/<name>.json`.
+- `task_replay_recipe {name, target_id?, env?: {EMAIL: "...", PWD: "..."}}` → `{ok, steps_executed, last_step_result, success_verified: bool}` — variable substitution in `args` values via `$VAR` syntax.
+- `task_list_recipes` → `{recipes: [{name, target_pattern?, last_used_at, step_count}]}`.
+
+**Recipe format example:**
+```json
+{
+  "name": "example-com-login",
+  "target_pattern": "*.example.com",
+  "actions": [
+    {"tool": "browser_navigate", "args": {"url": "https://example.com/login", "wait_until": "load"}},
+    {"tool": "browser_click", "args": {"locator": {"role": "button", "name": "Accept cookies"}}},
+    {"tool": "browser_fill",  "args": {"locator": {"css": "#email"}, "value": "$EMAIL"}},
+    {"tool": "browser_click", "args": {"locator": {"role": "button", "name": "Continue"}}},
+    {"tool": "browser_fill",  "args": {"locator": {"css": "#password"}, "value": "$PWD"}},
+    {"tool": "browser_click", "args": {"locator": {"role": "button", "name": "Sign in"}}}
+  ],
+  "success_marker": {"locator": {"text": "Welcome back"}},
+  "created_at": "2026-05-02T...",
+  "first_succeeded_at": "2026-05-02T..."
+}
+```
+
+**Why:** saves agents the cost of rediscovering UI flows on every run. The recipe replays in seconds; the discovery loop takes minutes. Recipes are portable — share them with other agents or commit them next to your test suite.
+
+**Out of scope here:** auto-recording every action transparently. Plan H may add an `--auto-record <recipe-name>` flag that wraps every tool call into a recipe. v1 of the feature requires explicit `task_record_recipe` so the agent decides what's worth saving.
+
 ### 5. Trinetra prompt + porting report addendum
 
 Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md` — create as part of this plan) with:
@@ -72,7 +135,7 @@ Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md`
 - The recovery policy (see `docs/integrations/trinetra-recovery-policy.md`).
 - New tools' surface.
 
-## Tasks (estimated 12-14)
+## Tasks (estimated 16-18)
 
 1. Fix `browser_navigate` no-active-target check + tests.
 2. Fix `browser_eval` return shape + tests.
@@ -83,17 +146,30 @@ Update the prompt artifact (in this repo: `docs/integrations/trinetra-prompt.md`
 7. Implement `browser_diagnose` composite tool + test.
 8. Implement coordinate tools: `browser_click_at`, `browser_hover_at`, `browser_drag` + tests.
 9. Add speed-default flags (`--default-wait-until`, `--default-call-timeout-ms`, `--snapshot-prune-aggressive`) + tests.
-10. Update e2e tests to exercise project isolation (two bridges, one Chrome, no cross-talk).
-11. Update README + integration prompts (RECOVERY POLICY + LIVE ADAPTATION POLICY + SPEED POLICY all documented in `docs/integrations/`).
-12. Verify + tag `plan-g-hotfixes-projects`.
+10. Add `include_bodies` to `browser_get_recent_events` (response/request body capture) + tests.
+11. Implement `task_action_diff` composite + tests.
+12. Implement `task_record_recipe` / `task_replay_recipe` / `task_list_recipes` + tests.
+13. Update e2e tests to exercise project isolation (two bridges, one Chrome, no cross-talk).
+14. Update e2e tests to exercise recipe round-trip (record → replay → verify).
+15. Update README + integration prompts (RECOVERY POLICY + LIVE ADAPTATION POLICY + SPEED POLICY all documented in `docs/integrations/`).
+16. Verify + tag `plan-g-hotfixes-projects`.
 
-## Wishlist captured from Trinetra feedback (DEFER — not Plan G)
+## Items deferred to Plan H (companion ecosystem)
+
+These belong in [Plan H](QUEUED-plan-h-companion-ecosystem.md) — they're sidecar tools that complement the bridge but don't change its core.
+
+- Local page-state classifier (small ViT/CLIP returning `{state}` so agents skip a reasoning turn on routine pages).
+- Concurrent multi-tab fan-out helper.
+- Visual regression diff (perceptual hash).
+- OCR fallback for canvas / image-heavy pages.
+- Bundled JS primitives library (DOM helpers, table extraction, scroll utilities).
+- Streaming MCP notifications (`/events` SSE stream — currently 204 stub).
+- localStorage/sessionStorage in `task_save_session`.
+
+## Items deferred to a future Plan I or later
 
 - JS handle retention across calls (`Runtime.releaseObject` lifecycle).
-- Network request bodies in event payloads (need `Network.enable` with `getResponseBody` follow-up).
 - Per-tab cookie filtering server-side.
-- localStorage/sessionStorage in `task_save_session`.
 - Real `task_run_with_proxy` (separate Chrome instance with `--proxy-server`).
 - Graceful `meta_detach` after `--launch` (currently kills Chrome process; should only kill if WE launched it).
-
-These belong in a Plan H or get cherry-picked into Plan G if they fit the iteration.
+- A `browser_assert` tool that fails loudly with structured error when the page doesn't match an expected condition.
