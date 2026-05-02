@@ -91,14 +91,30 @@ func startInGroup(t *testing.T, cmd *exec.Cmd) {
 	}
 }
 
-// killGroup signals the entire process tree, then reaps the parent.
-// Safe to call after the parent has already exited.
+// killGroup tears down the entire process tree.
+//
+// Critically: SIGTERM first so any deferred shutdown handlers (the bridge's
+// LaunchHandle.Stop, which kills the chrome process group it spawned) get to
+// run. SIGKILL would skip those handlers and leave Chrome processes orphaned
+// in their own pgid, racing t.TempDir cleanup. After a short grace window we
+// fall back to SIGKILL.
 func killGroup(cmd *exec.Cmd) {
 	if cmd == nil || cmd.Process == nil {
 		return
 	}
-	_ = profile.KillProcessGroup(cmd.Process.Pid)
-	_, _ = cmd.Process.Wait()
+	_ = profile.TerminateProcessGroup(cmd.Process.Pid)
+	done := make(chan struct{})
+	go func() {
+		_, _ = cmd.Process.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return
+	case <-time.After(2 * time.Second):
+		_ = profile.KillProcessGroup(cmd.Process.Pid)
+		<-done
+	}
 }
 
 func TestE2E_AttachAndListTabs(t *testing.T) {

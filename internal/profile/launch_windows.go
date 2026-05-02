@@ -27,5 +27,9 @@ func KillProcessGroup(pid int) error {
 	return p.Kill()
 }
 
+// TerminateProcessGroup is best-effort on Windows — same as KillProcessGroup.
+// Real graceful shutdown on Windows requires CTRL_BREAK_EVENT via JobObjects.
+func TerminateProcessGroup(pid int) error { return KillProcessGroup(pid) }
+
 func setProcessGroup(cmd *exec.Cmd)  { SetProcessGroup(cmd) }
 func killProcessGroup(pid int) error { return KillProcessGroup(pid) }

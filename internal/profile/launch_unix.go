@@ -31,6 +31,20 @@ func KillProcessGroup(pid int) error {
 	return nil
 }
 
+// TerminateProcessGroup sends SIGTERM to every process whose pgid is `pid`,
+// giving them a chance to run shutdown handlers. Returns nil if the group
+// is already gone. Callers that need a hard guarantee should follow up with
+// KillProcessGroup after a timeout.
+func TerminateProcessGroup(pid int) error {
+	if err := syscall.Kill(-pid, syscall.SIGTERM); err != nil {
+		if err == syscall.ESRCH {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 // internal aliases for backward compat within the package.
 func setProcessGroup(cmd *exec.Cmd)  { SetProcessGroup(cmd) }
 func killProcessGroup(pid int) error { return KillProcessGroup(pid) }
