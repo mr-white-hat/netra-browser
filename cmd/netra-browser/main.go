@@ -113,6 +113,7 @@ func main() {
 	tools.RegisterBrowserNav(reg, sess)
 	tools.RegisterBrowserInspect(reg, sess)
 	tools.RegisterBrowserInteract(reg, sess)
+	tools.RegisterBrowserDrop(reg, sess)
 	tools.RegisterBrowserEvents(reg, sess)
 	tools.RegisterBrowserDiagnose(reg, sess)
 	tools.RegisterSessionTasks(reg, sess)

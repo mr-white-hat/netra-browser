@@ -184,6 +184,7 @@ All accept the locator union `{role, name} \| {text} \| {snapshot_id} \| {css} \
 | `browser_press_key` | Synthesize a keyDown + keyUp |
 | `browser_upload_file` | Set a file on a `<input type="file">` |
 | `browser_click_at` / `browser_hover_at` / `browser_drag` | Coordinate-based escape hatch for canvas / SVG / drag-drop |
+| `browser_drop_files` | Drag-drop file upload — auto-detects hidden file input, falls back to native CDP drag sequence |
 
 ### Events + dialogs
 | Tool | Purpose |

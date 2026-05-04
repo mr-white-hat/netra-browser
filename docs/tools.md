@@ -116,6 +116,22 @@ Result: `{ok}`
 Args: `{locator, file_path, target_id?}`
 Result: `{ok}`
 
+### `browser_drop_files`
+
+Drag-drop file upload that auto-detects the right mechanism. Plan I composite.
+
+- Args: `{locator, file_paths: [string], target_id?, verify?: {locator?, text?, timeout_ms?}}`
+- Result: `{ok, mode: "hidden_input"|"synthetic_drag", verified?: bool, error?}`
+
+The locator points at the **drop zone** (visible drop area). The tool first looks inside that subtree for a hidden `<input type="file">` (`react-dropzone`, Uppy, Filepond, most a11y-conscious editors render one) — if found, uploads via `DOM.setFileInputFiles` and reports `mode: hidden_input`. Otherwise dispatches the native CDP drag sequence (`Input.dispatchDragEvent` × dragEnter/dragOver/drop) at the located element's box center, with `data.files` carrying server-side absolute paths — Chrome reads bytes off disk itself, no base64 roundtrip.
+
+`verify` is optional post-drop wait. Set `text` to substring-match `document.body.innerText` (typical: a filename appearing in the editor) or `locator` to wait for an attachment-rendered element. Default timeout 10s. `verified: false` does NOT make `ok: false` — the drop dispatch may have succeeded even if the page hasn't rendered confirmation yet; the agent decides what to do.
+
+**Caveats:**
+- File paths must exist on Chrome's filesystem, not the agent's. For attached-mode (same host) this is fine; remote-Chrome support requires the inline-data form (deferred).
+- Some custom drop zones gate on a CSRF token or origin check; a successful CDP drop dispatch can still result in a silent server-side reject. Use `verify` for those.
+- Multiple files in one call are passed as an array; the underlying CDP method handles multi-file selection.
+
 ### `browser_click_at` / `browser_hover_at` / `browser_drag` (escape hatch)
 
 Coordinate-based interaction for canvas, SVG, games, drag-and-drop, screenshot-driven clicks. Bypass locator/box-model resolution entirely. **Use only when the accessibility/snapshot_id locators don't apply** — coordinate clicks are brittle to viewport, scroll, zoom, and dynamic layout.
