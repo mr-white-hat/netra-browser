@@ -131,6 +131,74 @@ class Bridge:
         return res.get("result")  # the IIFE returns __netra.version
 
 
+    # ------------------------------------------------------------------
+    # SSE event stream (Plan H component #6).
+    # ------------------------------------------------------------------
+
+    def subscribe_events(self, target_id: str, *, types: Optional[list[str]] = None, timeout_s: float = 60.0):
+        """Stream live events from the bridge's /events SSE endpoint.
+
+        Yields dicts of shape `{"event": str, "target_id": str, "at_ms": int, "params": dict}`
+        as they arrive, plus one initial `{"event": "ready", ...}` so the caller
+        knows the stream is connected.
+
+        Stops when the connection drops or the iterator is closed.
+
+        Args:
+            target_id: target to subscribe to.
+            types: friendly type names (`navigation`, `network_request`,
+                `network_response`, `console`, `dialog`, `load`,
+                `domcontentloaded`). Default: every supported type.
+            timeout_s: max seconds to block on a single read. The 20s
+                heartbeat from the server keeps the connection alive.
+
+        Example:
+
+            for ev in bridge.subscribe_events(tid, types=["console"]):
+                if ev["event"] == "console":
+                    print(ev["params"]["args"])
+        """
+        params = {"target_id": target_id}
+        if types:
+            params["types"] = ",".join(types)
+        if self.token:
+            params["token"] = self.token
+        from urllib.parse import urlencode
+        url = self.url.rsplit("/rpc", 1)[0] + "/events?" + urlencode(params)
+        req = urllib.request.Request(url, method="GET")
+        if self.token:
+            req.add_header("Authorization", f"Bearer {self.token}")
+        resp = urllib.request.urlopen(req, timeout=timeout_s)
+        try:
+            event_name: Optional[str] = None
+            data_buf: list[str] = []
+            while True:
+                line = resp.readline()
+                if not line:
+                    return
+                s = line.decode("utf-8").rstrip("\r\n")
+                if s == "":
+                    # Dispatch buffered event.
+                    if event_name is not None and data_buf:
+                        try:
+                            payload = json.loads("".join(data_buf))
+                        except json.JSONDecodeError:
+                            payload = {"raw": "".join(data_buf)}
+                        payload["event"] = event_name
+                        yield payload
+                    event_name = None
+                    data_buf = []
+                    continue
+                if s.startswith(":"):
+                    continue  # heartbeat / comment
+                if s.startswith("event: "):
+                    event_name = s[len("event: "):]
+                elif s.startswith("data: "):
+                    data_buf.append(s[len("data: "):])
+        finally:
+            resp.close()
+
+
 def _load_actions_bundle(explicit: Optional[str]) -> str:
     """Locate netra-actions.js. Search order:
     1. Explicit `path=` arg

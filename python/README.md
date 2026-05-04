@@ -84,6 +84,22 @@ b.inject_actions(tid)  # reads ../js/netra-actions.js, injects via browser_eval
 rows = b.call("browser_eval", {"target_id": tid, "expression": "window.__netra.extractTable('table.results')"})["result"]
 ```
 
+## Live event streaming
+
+`Bridge.subscribe_events(target_id, types=[...])` is a generator over the bridge's `/events` SSE stream:
+
+```python
+b.attach()
+tid = b.new_tab("https://example.com/")
+for ev in b.subscribe_events(tid, types=["console", "navigation"]):
+    if ev["event"] == "console":
+        print(ev["params"]["args"])
+    elif ev["event"] == "navigation":
+        print("→", ev["params"]["frame"]["url"])
+```
+
+The first yielded event is `{"event":"ready", ...}` confirming the connection. Stops when the connection drops or the iterator is closed.
+
 ## Roadmap
 
 - Async (`asyncio`) variant for callers already living in an event loop.

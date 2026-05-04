@@ -126,3 +126,20 @@ func (p *Page) InjectEventForTest(e cdp.BufferedEvent) {
 	}
 	p.events.Add(e)
 }
+
+// SubscribeMethod registers a subscriber for the given CDP method and returns
+// a read-only channel plus a cleanup func. Used by the SSE handler to fan out
+// live events to HTTP clients. Caller must invoke cleanup on disconnect.
+func (p *Page) SubscribeMethod(method string) (<-chan cdp.BufferedEvent, func()) {
+	ch := p.addEventSub(method)
+	return ch, func() { p.removeEventSub(ch) }
+}
+
+// FanoutEventForTest exposes fanoutEvent so SSE tests can inject events without
+// driving a real CDP subscription.
+func (p *Page) FanoutEventForTest(e cdp.BufferedEvent) {
+	if e.At.IsZero() {
+		e.At = time.Now()
+	}
+	p.fanoutEvent(e)
+}

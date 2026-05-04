@@ -181,7 +181,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "non-localhost listen requires --token")
 			os.Exit(2)
 		}
-		handler := mcp.NewHTTPHandler(reg, mcp.HTTPOpts{Token: *token, AllowedOrigins: allowOrigins})
+		handler := mcp.NewHTTPHandler(reg, mcp.HTTPOpts{Token: *token, AllowedOrigins: allowOrigins, Session: sess})
 		srv := &http.Server{Addr: *listen, Handler: handler}
 		fmt.Fprintf(os.Stderr, "netra-browser listening on %s\n", *listen)
 		go func() {

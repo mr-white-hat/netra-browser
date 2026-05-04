@@ -146,6 +146,16 @@ When `include_bodies` is true, `network_request` and `network_response` events a
 Args: `{action: "accept"|"dismiss", text?, target_id?}`
 Result: `{ok}`
 
+### SSE event stream — `GET /events` (HTTP-SSE transport)
+
+Plan H #6. Live tail of CDP events instead of polling `browser_get_recent_events`. Open with EventSource (browser) or any SSE client (curl, Python `urllib`, the netra-fanout `Bridge.subscribe_events()` helper).
+
+- **Path:** `GET /events?target_id=<TID>&types=<comma-sep>` on the bridge's HTTP listener.
+- **Auth:** `Authorization: Bearer <T>` for non-browser clients, or `?token=<T>` for EventSource which can't set headers.
+- **Types:** any combination of `navigation`, `network_request`, `network_response`, `console`, `dialog`, `load`, `domcontentloaded`. Default = all.
+- **Wire format:** SSE. First event is `event: ready` with `data: {"target_id":"..."}`. Subsequent events use the friendly type as `event:` and `data:` is `{"target_id":"...","at_ms":..., "params":{...CDP params...}}`. Heartbeat comment lines (`: ping`) every 20s keep the connection alive.
+- **Backpressure:** slow consumers drop events silently (v0). Reconnect to resume the live tail; in-flight events during the gap are NOT replayed.
+
 ### `browser_diagnose`
 
 Composite "is anything wrong?" tool — bundles `meta_health` + tab-existence check + screenshot + snapshot + recent events into one round trip.
