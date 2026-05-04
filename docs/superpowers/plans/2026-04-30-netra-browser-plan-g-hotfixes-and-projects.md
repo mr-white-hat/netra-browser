@@ -1,6 +1,6 @@
-# Plan G — Hotfixes + Project Groups + Diagnose (QUEUED)
+# Plan G — Hotfixes + Project Groups + Diagnose
 
-> **Status:** queued, not started. Ground-truth scope below for whoever picks this up next.
+> **Status:** shipped 2026-05-03. All 16 tasks landed on branch `plan-g-hotfixes-projects`. See git log + `docs/integrations/v1-field-learnings.md` for the per-bug "Status (Plan G, shipped)" callouts.
 > **Source of issues:** field integration testing with a third-party MCP agent during 2026-05-02 (see [`docs/integrations/v1-field-learnings.md`](../../integrations/v1-field-learnings.md)) plus follow-up on agent recovery loops.
 > **Builds on:** `plan-f-release` tag.
 

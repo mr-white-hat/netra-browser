@@ -8,7 +8,7 @@ status: active
 
 This document captures issues found while integrating netra-browser v1 with an existing agent that previously used Playwright. The findings apply to any AI agent that drives a real, logged-in browser — QA automation, e2e testing, customer-support workflows, content scraping, RPA, recon. It also documents the agent-prompt policies that worked.
 
-For the planned fixes, see [`docs/superpowers/plans/QUEUED-plan-g-hotfixes-and-projects.md`](../superpowers/plans/QUEUED-plan-g-hotfixes-and-projects.md).
+For the shipped fixes, see [`docs/superpowers/plans/2026-04-30-netra-browser-plan-g-hotfixes-and-projects.md`](../superpowers/plans/2026-04-30-netra-browser-plan-g-hotfixes-and-projects.md). Per-bug "Status (Plan G, shipped)" callouts below.
 
 ---
 
@@ -25,7 +25,7 @@ For the planned fixes, see [`docs/superpowers/plans/QUEUED-plan-g-hotfixes-and-p
 go build -o netra-browser ./cmd/netra-browser
 ```
 
-**Planned fix:** Plan G Task 4 — add `Makefile` with `make build` and document in README.
+**Status (Plan G, shipped):** Plan G Task 4 — add `Makefile` with `make build` and document in README.
 
 ---
 
@@ -37,7 +37,7 @@ go build -o netra-browser ./cmd/netra-browser
 
 **Workaround:** always pass an explicit `target_id`. After `browser_new_tab`, capture the returned `target_id` and thread it through every subsequent call rather than relying on the active-target fallback.
 
-**Planned fix:** Plan G Task 1 — validate the target exists in `browser_list_tabs` before dispatching; return `{error_code: "invalid_args", message: "no active target"}` otherwise.
+**Status (Plan G, shipped):** Plan G Task 1 — validate the target exists in `browser_list_tabs` before dispatching; return `{error_code: "invalid_args", message: "no active target"}` otherwise.
 
 ---
 
@@ -49,7 +49,7 @@ go build -o netra-browser ./cmd/netra-browser
 
 **Workaround:** in client code, always attempt to JSON-decode the `result` field; if it's already decoded the decode is a no-op for primitives, idempotent for objects.
 
-**Planned fix:** Plan G Task 2 — always decode and surface the unmarshal error explicitly. Return `nil` (with the error) if undecodable. Never return the raw string fallback.
+**Status (Plan G, shipped):** Plan G Task 2 — always decode and surface the unmarshal error explicitly. Return `nil` (with the error) if undecodable. Never return the raw string fallback.
 
 ---
 
@@ -61,7 +61,7 @@ go build -o netra-browser ./cmd/netra-browser
 
 **Workaround:** after `meta_attach`, immediately call `meta_health` and check `chrome_alive` and `ws_alive`. If either is false, treat `meta_attach` as failed and abort.
 
-**Planned fix:** Plan G Task 3 — after `cdp.Dial`, issue `Browser.getVersion` and only return success if it round-trips. Reflect actual liveness in `meta_health`.
+**Status (Plan G, shipped):** Plan G Task 3 — after `cdp.Dial`, issue `Browser.getVersion` and only return success if it round-trips. Reflect actual liveness in `meta_health`.
 
 ---
 
@@ -75,7 +75,7 @@ go build -o netra-browser ./cmd/netra-browser
 
 **Workaround:** use `--lock <unique-path>` per agent, and have each agent track the `target_id`s it created and only operate on those. Avoid `browser_list_tabs` for selection.
 
-**Planned fix:** Plan G Tasks 5-6 — `--project <name>` flag (auto-generated short ID if omitted), sidecar JSON tracking owned `target_id`s, project-filtered `browser_list_tabs` (with `include_all: true` opt-out), new tools `browser_adopt_tab` / `browser_release_tab` / `browser_list_projects`.
+**Status (Plan G, shipped):** Plan G Tasks 5-6 — `--project <name>` flag (auto-generated short ID if omitted), sidecar JSON tracking owned `target_id`s, project-filtered `browser_list_tabs` (with `include_all: true` opt-out), new tools `browser_adopt_tab` / `browser_release_tab` / `browser_list_projects`.
 
 ---
 
@@ -95,7 +95,7 @@ go build -o netra-browser ./cmd/netra-browser
 
 Realistic floor with an AI in the loop is **3-8s per step**. Below that, the model isn't reasoning about what it's doing.
 
-**Planned fix:** Plan G Task 9 — server-side defaults that make every call cheaper without per-call args:
+**Status (Plan G, shipped):** Plan G Task 9 — server-side defaults that make every call cheaper without per-call args:
 - `--default-wait-until` (default `domcontentloaded`, was `load`)
 - `--default-call-timeout-ms` (default 5000, was 30000)
 - `--snapshot-prune-aggressive` (strips empty `WebArea`/`generic`/`group` containers)
@@ -110,7 +110,7 @@ Realistic floor with an AI in the loop is **3-8s per step**. Below that, the mod
 
 **Workaround:** none for canvas. For DOM-addressable cases, escape via `browser_eval` to compute coordinates yourself and dispatch via the JS DOM event API.
 
-**Planned fix:** Plan G Task 8 — add three coordinate tools that pass through to the existing CDP path:
+**Status (Plan G, shipped):** Plan G Task 8 — add three coordinate tools that pass through to the existing CDP path:
 - `browser_click_at {x, y, target_id?, button?, click_count?}`
 - `browser_hover_at {x, y, target_id?}`
 - `browser_drag {from: {x,y}, to: {x,y}, target_id?, button?, steps?}`
@@ -198,7 +198,7 @@ If a step is taking >5s and Chrome looks fine in screenshots, the bottleneck is 
 These came up during the integration but don't fit the "fix what's broken + isolate projects" focus of Plan G:
 
 - **JS handle retention across calls** — `Runtime.releaseObject` lifecycle so an agent can grab a DOM node once and reuse the handle.
-- **Network request bodies in event payloads** — currently events surface only metadata; bodies require an explicit follow-up call.
+- ~~**Network request bodies in event payloads**~~ — shipped in Plan G as `browser_get_recent_events {include_bodies: true}`.
 - **Per-tab cookie filtering server-side** — `Network.getCookies` returns browser-wide; clients filter manually.
 - **localStorage / sessionStorage in `task_save_session`** — v1 stores cookies only.
 - **Real `task_run_with_proxy`** — currently a stub that points users at the manual workaround (separate bridge instance with `--proxy-server` in Chrome args).

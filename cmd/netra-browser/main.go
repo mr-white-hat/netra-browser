@@ -29,18 +29,23 @@ func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }
 
 func main() {
 	var (
-		showVersion     = flag.Bool("version", false, "print version and exit")
-		debugURL        = flag.String("debug-url", "http://127.0.0.1:9222", "Chrome remote debugging URL")
-		autoAttach      = flag.Bool("auto-attach", false, "attach to Chrome at startup")
-		lockPath        = flag.String("lock", "", "lock file path (default: ~/.config/netra-browser/active.lock)")
-		listen          = flag.String("listen", "", "HTTP-SSE listen address (e.g. 127.0.0.1:7878). Empty = stdio mode.")
-		token           = flag.String("token", "", "Bearer token for HTTP-SSE auth")
-		launch          = flag.Bool("launch", false, "launch Chrome instead of attaching to a running one")
-		profileDir      = flag.String("profile-dir", "", "user-data-dir for launched Chrome (default: platform default)")
-		profileSnapshot = flag.Bool("profile-snapshot", false, "copy profile to a temp dir before launching")
-		launchHeadless  = flag.Bool("launch-headless", false, "pass --headless=new when launching")
-		launchNoSandbox = flag.Bool("launch-no-sandbox", false, "pass --no-sandbox when launching (required in CI/Docker)")
-		launchExtraArgs = flag.String("launch-extra-args", "", "space-separated extra args for the launched Chrome (e.g. --proxy-server=http://127.0.0.1:8080)")
+		showVersion             = flag.Bool("version", false, "print version and exit")
+		debugURL                = flag.String("debug-url", "http://127.0.0.1:9222", "Chrome remote debugging URL")
+		autoAttach              = flag.Bool("auto-attach", false, "attach to Chrome at startup")
+		lockPath                = flag.String("lock", "", "lock file path (default: ~/.config/netra-browser/active.lock)")
+		listen                  = flag.String("listen", "", "HTTP-SSE listen address (e.g. 127.0.0.1:7878). Empty = stdio mode.")
+		token                   = flag.String("token", "", "Bearer token for HTTP-SSE auth")
+		launch                  = flag.Bool("launch", false, "launch Chrome instead of attaching to a running one")
+		profileDir              = flag.String("profile-dir", "", "user-data-dir for launched Chrome (default: platform default)")
+		profileSnapshot         = flag.Bool("profile-snapshot", false, "copy profile to a temp dir before launching")
+		launchHeadless          = flag.Bool("launch-headless", false, "pass --headless=new when launching")
+		launchNoSandbox         = flag.Bool("launch-no-sandbox", false, "pass --no-sandbox when launching (required in CI/Docker)")
+		launchExtraArgs         = flag.String("launch-extra-args", "", "space-separated extra args for the launched Chrome (e.g. --proxy-server=http://127.0.0.1:8080)")
+		projectName             = flag.String("project", "", "project name for tab isolation (auto-generated if empty)")
+		projectsDir             = flag.String("projects-dir", "", "directory holding project sidecars (default: ~/.config/netra-browser/projects)")
+		defaultWaitUntil        = flag.String("default-wait-until", "domcontentloaded", "default wait_until for browser_navigate (load|domcontentloaded|networkidle)")
+		defaultCallTimeout      = flag.Int("default-call-timeout-ms", 5000, "default timeout for waiting tools (browser_wait_for, navigate event waits)")
+		snapshotPruneAggressive = flag.Bool("snapshot-prune-aggressive", false, "strip empty container nodes (WebArea/generic/group) from snapshots")
 	)
 	var allowOrigins multiFlag
 	flag.Var(&allowOrigins, "allow-origin", "CORS allowed origin (repeatable)")
@@ -69,6 +74,35 @@ func main() {
 	sess := mcp.NewSession()
 	reg := mcp.NewRegistry()
 
+	pdir := *projectsDir
+	if pdir == "" {
+		def, err := profile.DefaultProjectsDir()
+		if err == nil {
+			pdir = def
+		}
+	}
+	if pdir != "" {
+		_, _ = profile.SweepStaleProjects(pdir)
+		proj, err := profile.OpenProject(pdir, *projectName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "project: %v\n", err)
+			os.Exit(2)
+		}
+		sess.SetProject(proj)
+		*projectName = proj.Name
+		defer func() {
+			// Don't delete the project file on shutdown — sweep will clean it next start.
+			// Just leave the sidecar so an operator can inspect it post-mortem.
+		}()
+	}
+	tools.RegisterProjects(reg, pdir, *projectName)
+
+	tools.SetDefaults(tools.Defaults{
+		WaitUntil:       *defaultWaitUntil,
+		CallTimeoutMs:   *defaultCallTimeout,
+		AggressivePrune: *snapshotPruneAggressive,
+	})
+
 	tools.RegisterMeta(reg, sess, tools.MetaDeps{
 		StartedAt: time.Now(),
 		AttachFunc: func(ctx context.Context, url string) (mcp.CDPSender, string, int, error) {
@@ -80,8 +114,11 @@ func main() {
 	tools.RegisterBrowserInspect(reg, sess)
 	tools.RegisterBrowserInteract(reg, sess)
 	tools.RegisterBrowserEvents(reg, sess)
+	tools.RegisterBrowserDiagnose(reg, sess)
 	tools.RegisterSessionTasks(reg, sess)
 	tools.RegisterHighLevelTasks(reg, sess)
+	tools.RegisterTaskActionDiff(reg, sess)
+	tools.RegisterRecipes(reg, sess)
 
 	var launchHandle *profile.LaunchHandle
 	if *launch {

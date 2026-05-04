@@ -114,3 +114,15 @@ func (p *Page) RecentEvents(since time.Time, types []string) []cdp.BufferedEvent
 	}
 	return p.events.Recent(since, types)
 }
+
+// InjectEventForTest places an event directly into the ring buffer. Used by
+// tests that don't want to drive a real CDP subscription.
+func (p *Page) InjectEventForTest(e cdp.BufferedEvent) {
+	if p.events == nil {
+		p.events = cdp.NewRingBuffer(1000)
+	}
+	if e.At.IsZero() {
+		e.At = time.Now()
+	}
+	p.events.Add(e)
+}

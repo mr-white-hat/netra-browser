@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mr-white-hat/netra-browser/internal/browser"
 	"github.com/mr-white-hat/netra-browser/internal/cdp"
 	"github.com/mr-white-hat/netra-browser/internal/mcp"
 )
@@ -38,7 +39,11 @@ func RegisterBrowserEvents(reg *mcp.Registry, sess *mcp.Session) {
 		}
 		timeout := time.Duration(a.TimeoutMS) * time.Millisecond
 		if timeout == 0 {
-			timeout = 30 * time.Second
+			if d := DefaultCallTimeout(); d > 0 {
+				timeout = d
+			} else {
+				timeout = 30 * time.Second
+			}
 		}
 		predicate := buildPredicate(a.Predicate)
 		ev, err := page.WaitFor(ctx, method, predicate, timeout)
@@ -54,9 +59,11 @@ func RegisterBrowserEvents(reg *mcp.Registry, sess *mcp.Session) {
 
 	reg.Register("browser_get_recent_events", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a struct {
-			Since    int64    `json:"since"` // milliseconds since epoch
-			Types    []string `json:"types"`
-			TargetID string   `json:"target_id"`
+			Since         int64    `json:"since"` // milliseconds since epoch
+			Types         []string `json:"types"`
+			TargetID      string   `json:"target_id"`
+			IncludeBodies bool     `json:"include_bodies"`
+			BodyMaxSize   int      `json:"body_max_size"`
 		}
 		if len(params) > 0 {
 			_ = json.Unmarshal(params, &a)
@@ -72,6 +79,9 @@ func RegisterBrowserEvents(reg *mcp.Registry, sess *mcp.Session) {
 		if err != nil {
 			return mcp.ToolError{Code: mcp.ErrNotAttached, Message: err.Error()}.AsResult(), nil
 		}
+		if a.BodyMaxSize <= 0 {
+			a.BodyMaxSize = 64 * 1024
+		}
 		var since time.Time
 		if a.Since > 0 {
 			since = time.UnixMilli(a.Since)
@@ -85,11 +95,20 @@ func RegisterBrowserEvents(reg *mcp.Registry, sess *mcp.Session) {
 		evs := page.RecentEvents(since, methods)
 		out := make([]map[string]any, 0, len(evs))
 		for _, e := range evs {
-			out = append(out, map[string]any{
+			row := map[string]any{
 				"event":  reverseEventName(e.Method),
 				"at_ms":  e.At.UnixMilli(),
 				"params": json.RawMessage(e.Params),
-			})
+			}
+			if a.IncludeBodies {
+				if body, truncated, ok := extractEventBody(ctx, page, e); ok {
+					row["body"] = clipBody(body, a.BodyMaxSize, &truncated)
+					if truncated {
+						row["truncated"] = true
+					}
+				}
+			}
+			out = append(out, row)
 		}
 		return map[string]any{"ok": true, "events": out}, nil
 	})
@@ -195,4 +214,56 @@ func matchSubKey(m map[string]any, dottedKey string, want any) bool {
 	wb, _ := json.Marshal(want)
 	gb, _ := json.Marshal(cur)
 	return string(wb) == string(gb)
+}
+
+// extractEventBody returns (body, truncatedHint, ok) for an event when bodies are requested.
+// Request bodies are read from the inline event payload (no round-trip).
+// Response bodies require a Network.getResponseBody call and may fail (e.g. body
+// not yet loaded, or Chrome refused). Returns ok=false on any failure so the
+// caller just omits the body rather than synthesizing an error.
+func extractEventBody(ctx context.Context, page *browser.Page, e cdp.BufferedEvent) (string, bool, bool) {
+	switch e.Method {
+	case "Network.requestWillBeSent":
+		var p struct {
+			RequestID string `json:"requestId"`
+			Request   struct {
+				HasPostData bool   `json:"hasPostData"`
+				PostData    string `json:"postData"`
+			} `json:"request"`
+		}
+		if err := json.Unmarshal(e.Params, &p); err != nil {
+			return "", false, false
+		}
+		if p.Request.PostData != "" {
+			return p.Request.PostData, false, true
+		}
+		// Inline body wasn't shipped; ask Chrome.
+		if p.Request.HasPostData && p.RequestID != "" {
+			if data, err := page.GetRequestPostData(ctx, p.RequestID); err == nil {
+				return string(data), false, true
+			}
+		}
+		return "", false, false
+	case "Network.responseReceived":
+		var p struct {
+			RequestID string `json:"requestId"`
+		}
+		if err := json.Unmarshal(e.Params, &p); err != nil || p.RequestID == "" {
+			return "", false, false
+		}
+		data, err := page.GetResponseBody(ctx, p.RequestID)
+		if err != nil {
+			return "", false, false
+		}
+		return string(data), false, true
+	}
+	return "", false, false
+}
+
+func clipBody(s string, max int, truncated *bool) string {
+	if len(s) <= max {
+		return s
+	}
+	*truncated = true
+	return s[:max]
 }

@@ -57,9 +57,11 @@ docker run --rm -p 7878:7878 ghcr.io/mr-white-hat/netra-browser:latest --listen 
 ```bash
 git clone https://github.com/mr-white-hat/netra-browser
 cd netra-browser
-go build -o netra-browser ./cmd/netra-browser
+make build              # → ./netra-browser
 ./netra-browser --version
 ```
+
+Other Make targets: `make test` (unit), `make e2e` (e2e, needs Chrome), `make lint` (vet + gofmt check), `make install` (copies binary to `$PREFIX/bin`, default `/usr/local/bin`), `make clean`.
 
 **Direct download:** see [Releases](https://github.com/mr-white-hat/netra-browser/releases).
 
@@ -137,22 +139,24 @@ Non-localhost listen requires `--token`; the bridge refuses to start without one
 
 ---
 
-## Features — all 31 tools
+## Features
 
 ### Lifecycle (`meta_*`)
 | Tool | Purpose |
 |---|---|
 | `meta_attach` | Connect to a Chrome on a debug port |
 | `meta_detach` | Cleanly drop the connection |
-| `meta_health` | Liveness check (Chrome + WS) |
+| `meta_health` | Liveness check (Chrome + WS, probed by `Browser.getVersion`) |
 
 ### Tab management (`browser_*`)
 | Tool | Purpose |
 |---|---|
-| `browser_list_tabs` | List all tabs (URL, title, active flag) |
-| `browser_new_tab` | Open a new tab at a URL |
+| `browser_list_tabs` | Tabs in the current project (`{include_all: true}` for everything) |
+| `browser_new_tab` | Open a new tab — auto-tagged into the current project |
 | `browser_select_tab` | Make a tab active |
 | `browser_close_tab` | Close a tab |
+| `browser_adopt_tab` / `browser_release_tab` | Claim / un-claim a pre-existing tab into this project |
+| `browser_list_projects` | Diagnostic — every project sidecar in the projects dir |
 
 ### Navigation
 | Tool | Purpose |
@@ -179,13 +183,15 @@ All accept the locator union `{role, name} \| {text} \| {snapshot_id} \| {css} \
 | `browser_select_option` | Set `<select>` values |
 | `browser_press_key` | Synthesize a keyDown + keyUp |
 | `browser_upload_file` | Set a file on a `<input type="file">` |
+| `browser_click_at` / `browser_hover_at` / `browser_drag` | Coordinate-based escape hatch for canvas / SVG / drag-drop |
 
 ### Events + dialogs
 | Tool | Purpose |
 |---|---|
 | `browser_wait_for` | Block until a future event fires (with optional predicate) |
-| `browser_get_recent_events` | Read the buffered event log (network / console / dialog / navigation) |
+| `browser_get_recent_events` | Buffered events; `{include_bodies: true}` augments network events with payloads |
 | `browser_handle_dialog` | Accept/dismiss `alert`/`confirm`/`prompt` |
+| `browser_diagnose` | Composite "is anything wrong?" — health + tab check + screenshot + snapshot + recent events |
 
 ### High-level tasks (`task_*`)
 | Tool | Purpose |
@@ -195,6 +201,8 @@ All accept the locator union `{role, name} \| {text} \| {snapshot_id} \| {css} \
 | `task_save_session` / `task_load_session` | Browser-wide cookie persistence by name |
 | `task_wait_for_download` | Set download dir, optionally trigger an action, wait for completion |
 | `task_run_with_proxy` | (v1 stub — see [docs/tools.md](docs/tools.md)) |
+| `task_action_diff` | Snapshot before, run an action, snapshot after, return the diff (URL / cookies / console / network / DOM hash) |
+| `task_record_recipe` / `task_replay_recipe` / `task_list_recipes` | Save an action sequence to JSON, replay it later with `$VAR` substitution, list saved recipes |
 
 Full reference: [`docs/tools.md`](docs/tools.md).
 
@@ -252,18 +260,27 @@ More integrations under [`docs/integrations/`](docs/integrations/).
 Common flags:
 
 ```
---listen 127.0.0.1:7878    HTTP-SSE transport (default: stdio)
---token <TOKEN>            required for non-localhost listen
---launch                   spawn Chrome ourselves
---profile-dir <PATH>       custom user-data-dir for launch mode
---profile-snapshot         copy profile to a temp dir before launching
---launch-headless          add --headless=new
---debug-url URL            attach to running Chrome (default http://127.0.0.1:9222)
---lock <PATH>              lock-file path (default ~/.config/netra-browser/active.lock)
---allow-origin <ORIGIN>    CORS allowlist for HTTP-SSE (repeatable)
+--listen 127.0.0.1:7878         HTTP-SSE transport (default: stdio)
+--token <TOKEN>                 required for non-localhost listen
+--launch                        spawn Chrome ourselves
+--profile-dir <PATH>            custom user-data-dir for launch mode
+--profile-snapshot              copy profile to a temp dir before launching
+--launch-headless               add --headless=new
+--debug-url URL                 attach to running Chrome (default http://127.0.0.1:9222)
+--lock <PATH>                   lock-file path (default ~/.config/netra-browser/active.lock)
+--allow-origin <ORIGIN>         CORS allowlist for HTTP-SSE (repeatable)
+--project <name>                tab-isolation project (default: auto-generated)
+--projects-dir <PATH>           project sidecars (default ~/.config/netra-browser/projects)
+--default-wait-until <mode>     server-side default for browser_navigate (default domcontentloaded)
+--default-call-timeout-ms <ms>  default timeout for waiting tools (default 5000)
+--snapshot-prune-aggressive     strip empty WebArea/generic/group nodes from snapshots
 ```
 
-Sessions are stored at `~/.config/netra-browser/sessions/<name>.json`.
+Sessions live at `~/.config/netra-browser/sessions/<name>.json`. Recipes live at `~/.config/netra-browser/recipes/<name>.json`.
+
+### Multiple bridges, one Chrome
+
+Each bridge gets its own `--project <name>` and `--lock <unique-path>`. `browser_list_tabs` then only shows that bridge's owned tabs by default; pass `{include_all: true}` to see everything Chrome has open. Adopt pre-existing tabs into your project with `browser_adopt_tab`.
 
 ---
 
@@ -271,7 +288,7 @@ Sessions are stored at `~/.config/netra-browser/sessions/<name>.json`.
 
 Active development is tracked in [`docs/superpowers/plans/`](docs/superpowers/plans/). What's next:
 
-**Plan G — Hotfixes + project groups + diagnose tool + speed defaults** ([scope](docs/superpowers/plans/QUEUED-plan-g-hotfixes-and-projects.md))
+**Plan G — Hotfixes + project groups + diagnose tool + speed defaults** ([shipped 2026-05-03](docs/superpowers/plans/2026-04-30-netra-browser-plan-g-hotfixes-and-projects.md))
 - Fix three v1 bugs found in the field (silent navigate no-op, eval shape, attach false-positive)
 - `--project <name>` flag for parallel agents on one Chrome with isolated tab visibility
 - `browser_diagnose` composite tool (one call replaces the 5-call diagnostic chain)

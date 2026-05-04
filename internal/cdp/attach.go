@@ -47,6 +47,13 @@ func Attach(ctx context.Context, debugURL string) (*Client, string, int, error) 
 	if err != nil {
 		return nil, "", 0, fmt.Errorf("dial cdp: %w", err)
 	}
+	// Round-trip Browser.getVersion to prove the CDP layer is actually alive —
+	// HTTP /json/version + an open websocket are not sufficient (Chrome can hand
+	// back a WS but stop answering browser-level methods).
+	if _, err := client.Send(ctx, "Browser.getVersion", nil); err != nil {
+		_ = client.Close()
+		return nil, "", 0, fmt.Errorf("Browser.getVersion: %w", err)
+	}
 	raw, err := client.Send(ctx, "Target.getTargets", nil)
 	if err != nil {
 		_ = client.Close()

@@ -23,12 +23,24 @@ func RegisterMeta(reg *mcp.Registry, sess *mcp.Session, deps MetaDeps) {
 	}
 
 	reg.Register("meta_health", func(ctx context.Context, _ json.RawMessage) (any, error) {
-		return map[string]any{
+		client := sess.Client()
+		out := map[string]any{
 			"ok":           true,
-			"chrome_alive": sess.IsAttached(),
-			"ws_alive":     sess.IsAttached(),
+			"chrome_alive": false,
+			"ws_alive":     false,
 			"uptime_ms":    time.Since(deps.StartedAt).Milliseconds(),
-		}, nil
+		}
+		if client == nil {
+			return out, nil
+		}
+		// Probe with Browser.getVersion — answers iff CDP is responsive.
+		probeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		if _, err := client.Send(probeCtx, "Browser.getVersion", nil); err == nil {
+			out["chrome_alive"] = true
+			out["ws_alive"] = true
+		}
+		return out, nil
 	})
 
 	reg.Register("meta_detach", func(ctx context.Context, _ json.RawMessage) (any, error) {

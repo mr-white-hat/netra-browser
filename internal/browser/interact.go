@@ -139,6 +139,66 @@ func (p *Page) SelectOption(ctx context.Context, l Locator, values []string) err
 	return err
 }
 
+// ClickAt dispatches a press+release at raw viewport coordinates.
+// Bypasses locator/box-model resolution — escape hatch for canvas, SVG, games.
+func (p *Page) ClickAt(ctx context.Context, x, y float64, button string, clickCount int) error {
+	if button == "" {
+		button = "left"
+	}
+	if clickCount <= 0 {
+		clickCount = 1
+	}
+	for _, t := range []string{"mousePressed", "mouseReleased"} {
+		if _, err := p.send(ctx, "Input.dispatchMouseEvent", map[string]any{
+			"type": t, "x": x, "y": y, "button": button, "clickCount": clickCount,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// HoverAt dispatches a mouseMoved at raw viewport coordinates.
+func (p *Page) HoverAt(ctx context.Context, x, y float64) error {
+	_, err := p.send(ctx, "Input.dispatchMouseEvent", map[string]any{
+		"type": "mouseMoved", "x": x, "y": y, "button": "none",
+	})
+	return err
+}
+
+// Drag interpolates mouseMoved events between (fromX,fromY) and (toX,toY) so
+// drag handlers that listen for movement (HTML5 dnd, canvas brushes, sliders)
+// register the gesture.
+func (p *Page) Drag(ctx context.Context, fromX, fromY, toX, toY float64, button string, steps int) error {
+	if button == "" {
+		button = "left"
+	}
+	if steps <= 0 {
+		steps = 10
+	}
+	if _, err := p.send(ctx, "Input.dispatchMouseEvent", map[string]any{
+		"type": "mousePressed", "x": fromX, "y": fromY, "button": button, "clickCount": 1,
+	}); err != nil {
+		return err
+	}
+	for i := 1; i <= steps; i++ {
+		t := float64(i) / float64(steps)
+		x := fromX + (toX-fromX)*t
+		y := fromY + (toY-fromY)*t
+		if _, err := p.send(ctx, "Input.dispatchMouseEvent", map[string]any{
+			"type": "mouseMoved", "x": x, "y": y, "button": button,
+		}); err != nil {
+			return err
+		}
+	}
+	if _, err := p.send(ctx, "Input.dispatchMouseEvent", map[string]any{
+		"type": "mouseReleased", "x": toX, "y": toY, "button": button, "clickCount": 1,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
 // PressKey synthesizes a keyDown+keyUp pair.
 func (p *Page) PressKey(ctx context.Context, key string) error {
 	for _, t := range []string{"keyDown", "keyUp"} {

@@ -36,7 +36,11 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 		if err != nil {
 			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
 		}
-		return map[string]any{"ok": true, "snapshot": snap.Nodes}, nil
+		nodes := snap.Nodes
+		if GetDefaults().AggressivePrune {
+			nodes = pruneEmptyContainers(nodes)
+		}
+		return map[string]any{"ok": true, "snapshot": nodes}, nil
 	})
 
 	reg.Register("browser_screenshot", func(ctx context.Context, params json.RawMessage) (any, error) {

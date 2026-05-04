@@ -8,7 +8,7 @@ import (
 )
 
 func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
-	reg.Register("browser_list_tabs", func(ctx context.Context, _ json.RawMessage) (any, error) {
+	reg.Register("browser_list_tabs", func(ctx context.Context, params json.RawMessage) (any, error) {
 		client := sess.Client()
 		if client == nil {
 			return mcp.ToolError{Code: mcp.ErrNotAttached, Message: "call meta_attach first"}.AsResult(), nil
@@ -30,17 +30,32 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 			return mcp.ToolError{Code: "decode_error", Message: err.Error()}.AsResult(), nil
 		}
 		active := sess.ActiveTarget()
+		var args struct {
+			IncludeAll bool `json:"include_all"`
+		}
+		if len(params) > 0 {
+			_ = json.Unmarshal(params, &args)
+		}
+		proj := sess.Project()
 		out := []map[string]any{}
 		for _, ti := range resp.TargetInfos {
 			if ti.Type != "page" {
 				continue
 			}
-			out = append(out, map[string]any{
+			owned := proj != nil && proj.Owns(ti.TargetID)
+			if proj != nil && !args.IncludeAll && !owned {
+				continue
+			}
+			row := map[string]any{
 				"target_id": ti.TargetID,
 				"url":       ti.URL,
 				"title":     ti.Title,
 				"active":    ti.TargetID == active,
-			})
+			}
+			if proj != nil {
+				row["owned"] = owned
+			}
+			out = append(out, row)
 		}
 		return map[string]any{"ok": true, "tabs": out}, nil
 	})
@@ -68,6 +83,9 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 		}
 		_ = json.Unmarshal(raw, &resp)
 		sess.SetActiveTarget(resp.TargetID)
+		if proj := sess.Project(); proj != nil && resp.TargetID != "" {
+			_ = proj.Adopt(resp.TargetID)
+		}
 		return map[string]any{"ok": true, "target_id": resp.TargetID}, nil
 	})
 
@@ -113,6 +131,48 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 		}
 		if sess.ActiveTarget() == args.TargetID {
 			sess.SetActiveTarget("")
+		}
+		if proj := sess.Project(); proj != nil {
+			_ = proj.Release(args.TargetID)
+		}
+		return map[string]any{"ok": true}, nil
+	})
+
+	reg.Register("browser_adopt_tab", func(ctx context.Context, params json.RawMessage) (any, error) {
+		proj := sess.Project()
+		if proj == nil {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no project scope (start bridge with --project)"}.AsResult(), nil
+		}
+		var args struct {
+			TargetID string `json:"target_id"`
+		}
+		if err := json.Unmarshal(params, &args); err != nil || args.TargetID == "" {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "target_id required"}.AsResult(), nil
+		}
+		if ok, err := targetExists(ctx, sess.Client(), args.TargetID); err != nil {
+			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
+		} else if !ok {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "target_id not found: " + args.TargetID}.AsResult(), nil
+		}
+		if err := proj.Adopt(args.TargetID); err != nil {
+			return mcp.ToolError{Code: "adopt_failed", Message: err.Error()}.AsResult(), nil
+		}
+		return map[string]any{"ok": true}, nil
+	})
+
+	reg.Register("browser_release_tab", func(ctx context.Context, params json.RawMessage) (any, error) {
+		proj := sess.Project()
+		if proj == nil {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no project scope (start bridge with --project)"}.AsResult(), nil
+		}
+		var args struct {
+			TargetID string `json:"target_id"`
+		}
+		if err := json.Unmarshal(params, &args); err != nil || args.TargetID == "" {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "target_id required"}.AsResult(), nil
+		}
+		if err := proj.Release(args.TargetID); err != nil {
+			return mcp.ToolError{Code: "release_failed", Message: err.Error()}.AsResult(), nil
 		}
 		return map[string]any{"ok": true}, nil
 	})

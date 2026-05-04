@@ -44,6 +44,7 @@ func TestNavigateTool(t *testing.T) {
 	sess := mcp.NewSession()
 	sess.SetClient(&fakeFullSender{
 		results: map[string]json.RawMessage{
+			"Target.getTargets":           json.RawMessage(`{"targetInfos":[{"targetId":"T1","type":"page"}]}`),
 			"Page.navigate":               json.RawMessage(`{"frameId":"F1"}`),
 			"Accessibility.getFullAXTree": json.RawMessage(`{"nodes":[]}`),
 		},
@@ -65,7 +66,11 @@ func TestNavigateTool(t *testing.T) {
 
 func TestReloadTool(t *testing.T) {
 	sess := mcp.NewSession()
-	sess.SetClient(&fakeFullSender{})
+	sess.SetClient(&fakeFullSender{
+		results: map[string]json.RawMessage{
+			"Target.getTargets": json.RawMessage(`{"targetInfos":[{"targetId":"T1","type":"page"}]}`),
+		},
+	})
 	sess.SetActiveTarget("T1")
 	reg := mcp.NewRegistry()
 	RegisterBrowserNav(reg, sess)
@@ -89,5 +94,44 @@ func TestNavigateRequiresTargetOrActive(t *testing.T) {
 	b, _ := json.Marshal(out)
 	if !strings.Contains(string(b), `"error_code":"invalid_args"`) {
 		t.Fatalf("expected invalid_args: %s", b)
+	}
+}
+
+// Stale active target: SetActiveTarget points at "T-stale" but Target.getTargets
+// returns no such id. Navigate should reject with invalid_args / "no active target".
+func TestNavigateRejectsStaleActiveTarget(t *testing.T) {
+	sess := mcp.NewSession()
+	sess.SetClient(&fakeFullSender{
+		results: map[string]json.RawMessage{
+			"Target.getTargets": json.RawMessage(`{"targetInfos":[{"targetId":"T-other","type":"page"}]}`),
+		},
+	})
+	sess.SetActiveTarget("T-stale")
+	reg := mcp.NewRegistry()
+	RegisterBrowserNav(reg, sess)
+	out, _ := reg.Invoke(context.Background(), "browser_navigate", json.RawMessage(`{"url":"https://x"}`))
+	b, _ := json.Marshal(out)
+	if !strings.Contains(string(b), `"error_code":"invalid_args"`) {
+		t.Fatalf("expected invalid_args for stale active target: %s", b)
+	}
+	if !strings.Contains(string(b), `no active target`) {
+		t.Fatalf("expected message 'no active target': %s", b)
+	}
+}
+
+// Explicit target_id that does not exist should also reject.
+func TestNavigateRejectsNonexistentTargetID(t *testing.T) {
+	sess := mcp.NewSession()
+	sess.SetClient(&fakeFullSender{
+		results: map[string]json.RawMessage{
+			"Target.getTargets": json.RawMessage(`{"targetInfos":[]}`),
+		},
+	})
+	reg := mcp.NewRegistry()
+	RegisterBrowserNav(reg, sess)
+	out, _ := reg.Invoke(context.Background(), "browser_navigate", json.RawMessage(`{"url":"https://x","target_id":"T-bogus"}`))
+	b, _ := json.Marshal(out)
+	if !strings.Contains(string(b), `"error_code":"invalid_args"`) {
+		t.Fatalf("expected invalid_args for nonexistent target_id: %s", b)
 	}
 }

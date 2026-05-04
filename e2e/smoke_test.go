@@ -177,8 +177,9 @@ func TestE2E_AttachAndListTabs(t *testing.T) {
 		t.Fatalf("attach failed: %v", r)
 	}
 
-	// 3. list tabs — about:blank should be there.
-	r = send(3, "browser_list_tabs", nil)
+	// 3. list tabs — about:blank should be there. Use include_all because Chrome's
+	// pre-existing tab isn't owned by this bridge's auto-project.
+	r = send(3, "browser_list_tabs", map[string]any{"include_all": true})
 	res = r["result"].(map[string]any)
 	tabs := res["tabs"].([]any)
 	if len(tabs) == 0 {

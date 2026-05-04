@@ -31,11 +31,26 @@ func RegisterBrowserNav(reg *mcp.Registry, sess *mcp.Session) {
 		if tid == "" {
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target_id and no active target"}.AsResult(), nil
 		}
+		// Validate target still exists — active-target IDs go stale when a tab closes,
+		// and explicit target_ids may be invented by callers.
+		if ok, err := targetExists(ctx, sess.Client(), tid); err != nil {
+			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
+		} else if !ok {
+			if a.TargetID == "" {
+				sess.SetActiveTarget("")
+				return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no active target"}.AsResult(), nil
+			}
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "target_id not found: " + tid}.AsResult(), nil
+		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {
 			return mcp.ToolError{Code: mcp.ErrNotAttached, Message: err.Error()}.AsResult(), nil
 		}
-		opts := browser.NavigateOpts{URL: a.URL, WaitUntil: browser.WaitUntil(a.WaitUntil)}
+		wait := a.WaitUntil
+		if wait == "" {
+			wait = GetDefaults().WaitUntil
+		}
+		opts := browser.NavigateOpts{URL: a.URL, WaitUntil: browser.WaitUntil(wait)}
 		res, err := page.Navigate(ctx, opts)
 		if err != nil {
 			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil

@@ -19,15 +19,39 @@ type CDPSender interface {
 // CDPCloser is kept as an alias for older code that imported the name.
 type CDPCloser = CDPSender
 
+// ProjectScope is the subset of *profile.Project that Session needs. Nil = no scoping
+// (every tab is visible, no auto-tagging on new tabs).
+type ProjectScope interface {
+	Adopt(targetID string) error
+	Release(targetID string) error
+	Owns(targetID string) bool
+	Targets() []string
+}
+
 // Session is per-MCP-process state: one active CDP connection, one active target.
 type Session struct {
 	mu           sync.RWMutex
 	client       CDPSender
 	activeTarget string
 	pages        map[string]*browser.Page
+	project      ProjectScope
 }
 
 func NewSession() *Session { return &Session{pages: map[string]*browser.Page{}} }
+
+// SetProject installs the per-bridge project scope. Pass nil to disable scoping.
+func (s *Session) SetProject(p ProjectScope) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.project = p
+}
+
+// Project returns the installed project scope (may be nil).
+func (s *Session) Project() ProjectScope {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.project
+}
 
 func (s *Session) SetClient(c CDPSender) {
 	s.mu.Lock()

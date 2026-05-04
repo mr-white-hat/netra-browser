@@ -126,4 +126,58 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 		}
 		return wrap(page, ctx, false, page.UploadFile(ctx, a.Locator, a.FilePath)), nil
 	})
+
+	// Coordinate-based escape-hatch tools — use these for canvas/SVG/games/drag-drop
+	// when the accessibility/snapshot_id locators don't apply.
+	reg.Register("browser_click_at", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var a struct {
+			X          float64 `json:"x"`
+			Y          float64 `json:"y"`
+			TargetID   string  `json:"target_id"`
+			Button     string  `json:"button"`
+			ClickCount int     `json:"click_count"`
+		}
+		_ = json.Unmarshal(params, &a)
+		page, errR := resolvePage(ctx, a.TargetID)
+		if errR != nil {
+			return *errR, nil
+		}
+		return wrap(page, ctx, false, page.ClickAt(ctx, a.X, a.Y, a.Button, a.ClickCount)), nil
+	})
+
+	reg.Register("browser_hover_at", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var a struct {
+			X        float64 `json:"x"`
+			Y        float64 `json:"y"`
+			TargetID string  `json:"target_id"`
+		}
+		_ = json.Unmarshal(params, &a)
+		page, errR := resolvePage(ctx, a.TargetID)
+		if errR != nil {
+			return *errR, nil
+		}
+		return wrap(page, ctx, false, page.HoverAt(ctx, a.X, a.Y)), nil
+	})
+
+	reg.Register("browser_drag", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var a struct {
+			From struct {
+				X float64 `json:"x"`
+				Y float64 `json:"y"`
+			} `json:"from"`
+			To struct {
+				X float64 `json:"x"`
+				Y float64 `json:"y"`
+			} `json:"to"`
+			TargetID string `json:"target_id"`
+			Button   string `json:"button"`
+			Steps    int    `json:"steps"`
+		}
+		_ = json.Unmarshal(params, &a)
+		page, errR := resolvePage(ctx, a.TargetID)
+		if errR != nil {
+			return *errR, nil
+		}
+		return wrap(page, ctx, false, page.Drag(ctx, a.From.X, a.From.Y, a.To.X, a.To.Y, a.Button, a.Steps)), nil
+	})
 }

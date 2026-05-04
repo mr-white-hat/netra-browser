@@ -23,12 +23,15 @@ Result: `{ok, chrome_alive, ws_alive, uptime_ms}`
 ## Targets / tabs
 
 ### `browser_list_tabs`
-Args: none
-Result: `{ok, tabs: [{target_id, url, title, active}]}`
+Args: `{include_all?: bool}`
+Result: `{ok, tabs: [{target_id, url, title, active, owned?}]}`
+
+When the bridge is running with a project (default: auto-generated `proj-<hex>`), the list is **filtered to tabs the project owns**. Pass `include_all: true` to see every Chrome tab regardless of project.
 
 ### `browser_new_tab`
 Args: `{url?}` (default `about:blank`)
 Result: `{ok, target_id}`
+Auto-tagged into the bridge's current project.
 
 ### `browser_select_tab`
 Args: `{target_id}`
@@ -37,6 +40,21 @@ Result: `{ok}`
 ### `browser_close_tab`
 Args: `{target_id?}` (default: active)
 Result: `{ok}`
+
+### `browser_adopt_tab`
+Args: `{target_id}`
+Result: `{ok}`
+Claim a pre-existing tab into the current project (so subsequent filtered `browser_list_tabs` shows it).
+
+### `browser_release_tab`
+Args: `{target_id}`
+Result: `{ok}`
+Stop owning the tab — it remains in Chrome but disappears from this project's filtered list.
+
+### `browser_list_projects`
+Args: none
+Result: `{ok, active, projects: [{name, owner_pid, owned_target_ids, created_at, is_self}]}`
+Diagnostic — lists every project sidecar in the projects directory.
 
 ## Navigation
 
@@ -98,6 +116,14 @@ Result: `{ok}`
 Args: `{locator, file_path, target_id?}`
 Result: `{ok}`
 
+### `browser_click_at` / `browser_hover_at` / `browser_drag` (escape hatch)
+
+Coordinate-based interaction for canvas, SVG, games, drag-and-drop, screenshot-driven clicks. Bypass locator/box-model resolution entirely. **Use only when the accessibility/snapshot_id locators don't apply** — coordinate clicks are brittle to viewport, scroll, zoom, and dynamic layout.
+
+- `browser_click_at`: `{x, y, target_id?, button?: "left"|"right"|"middle", click_count?}` → `{ok}`
+- `browser_hover_at`: `{x, y, target_id?}` → `{ok}`
+- `browser_drag`: `{from: {x,y}, to: {x,y}, target_id?, button?, steps?}` → `{ok}` (interpolates `mouseMoved` events between from/to so HTML5 dnd / canvas brushes / sliders register the gesture).
+
 ## Events
 
 Event names: `navigation` | `network_request` | `network_response` | `console` | `dialog` | `load` | `domcontentloaded`.
@@ -111,12 +137,23 @@ Predicate is a flat object of dotted-key paths to expected values, e.g. `{"frame
 **Note:** `wait_for` only catches events that fire AFTER the call subscribes. For events that may have already fired, use `browser_get_recent_events`.
 
 ### `browser_get_recent_events`
-Args: `{since?: ms_since_epoch, types?: [string], target_id?}`
-Result: `{ok, events: [{event, at_ms, params}]}`
+Args: `{since?: ms_since_epoch, types?: [string], target_id?, include_bodies?: bool, body_max_size?: int}`
+Result: `{ok, events: [{event, at_ms, params, body?, truncated?}]}`
+
+When `include_bodies` is true, `network_request` and `network_response` events are augmented with their inline payload via `Network.getRequestPostData` / `Network.getResponseBody`. `body_max_size` defaults to 65536 (64 KB); larger bodies are truncated and marked `truncated: true`.
 
 ### `browser_handle_dialog`
 Args: `{action: "accept"|"dismiss", text?, target_id?}`
 Result: `{ok}`
+
+### `browser_diagnose`
+
+Composite "is anything wrong?" tool — bundles `meta_health` + tab-existence check + screenshot + snapshot + recent events into one round trip.
+
+Args: `{target_id?, recent_events_window_ms?: int}` (default window 5000)
+Result: `{ok, chrome_alive, ws_alive, target_exists, target_id?, screenshot_png_base64?, snapshot?, recent_events?, error?}`
+
+Sub-calls fail independently; you always get a partial result so the agent can decide what to do next.
 
 ## Tasks
 
@@ -135,6 +172,41 @@ Args: `{name}`
 Result: `{ok, session_path}`
 
 Exports browser-wide cookies via `Storage.getCookies` to `~/.config/netra-browser/sessions/<name>.json`. v1: cookies only; localStorage deferred.
+
+### `task_action_diff`
+
+Snapshot state, run an action via the registry, snapshot state again, return the diff. Removes the "what just happened?" reasoning turn agents otherwise need after each significant action.
+
+Args:
+```json
+{
+  "action": {"tool": "browser_click", "args": {"locator": {...}}},
+  "target_id": "...",
+  "capture": ["url", "cookies", "console", "network", "dom_summary"]
+}
+```
+Result:
+```json
+{
+  "ok": true,
+  "action_result": {...},
+  "url_changed": true, "url_before": "...", "url_after": "...",
+  "new_cookies": [...], "removed_cookies": [...],
+  "new_console_messages": [...],
+  "new_network_requests": [...],
+  "dom_summary_changed": true, "dom_summary_before": "<hash>", "dom_summary_after": "<hash>"
+}
+```
+
+`dom_summary` is a SHA-256 hash of the snapshot tree's role/name pairs — cheap and change-sensitive.
+
+### `task_record_recipe` / `task_replay_recipe` / `task_list_recipes`
+
+Capture an interaction sequence as a deterministic, replayable JSON file.
+
+- **Record**: `{name, actions: [{tool, args}], success_marker?: {url_pattern|text}, target_pattern?}` → `{ok, recipe_path}`. Saves to `~/.config/netra-browser/recipes/<name>.json`.
+- **Replay**: `{name, target_id?, env?: {VAR: "..."}}` → `{ok, steps_executed, last_step_result, success_verified}`. Substitutes `$VAR` in action args with values from `env`. Missing variables abort the replay.
+- **List**: `{}` → `{ok, recipes: [{name, step_count, target_pattern?, last_used_at?, created_at}]}`.
 
 ### `task_load_session`
 Args: `{name}`

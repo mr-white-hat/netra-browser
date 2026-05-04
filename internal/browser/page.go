@@ -45,7 +45,7 @@ func NewPage(ctx context.Context, c Sender, targetID string) (*Page, error) {
 		return nil, err
 	}
 	p := &Page{cdp: c, targetID: targetID, sessionID: sid}
-	for _, m := range []string{"Page.enable", "DOM.enable", "Runtime.enable", "Accessibility.enable"} {
+	for _, m := range []string{"Page.enable", "DOM.enable", "Runtime.enable", "Accessibility.enable", "Network.enable"} {
 		if _, err := c.SendOnTarget(ctx, sid, m, nil); err != nil {
 			return nil, err
 		}

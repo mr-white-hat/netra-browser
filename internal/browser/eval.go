@@ -36,7 +36,7 @@ func (p *Page) Eval(ctx context.Context, expression string) (any, error) {
 	}
 	var v any
 	if err := json.Unmarshal(resp.Result.Value, &v); err != nil {
-		return string(resp.Result.Value), nil
+		return nil, fmt.Errorf("eval result undecodable: %w", err)
 	}
 	return v, nil
 }

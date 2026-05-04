@@ -105,7 +105,9 @@ func TestE2E_HTTPTransport(t *testing.T) {
 		t.Fatalf("attach: %v", r)
 	}
 
-	r = send(2, "browser_list_tabs", nil)
+	// include_all=true so we see Chrome's pre-existing about:blank tab even though
+	// this bridge's auto-project hasn't adopted it.
+	r = send(2, "browser_list_tabs", map[string]any{"include_all": true})
 	res, _ = r["result"].(map[string]any)
 	if res == nil || res["ok"] != true {
 		t.Fatalf("list_tabs: %v", r)
