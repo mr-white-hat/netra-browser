@@ -171,7 +171,17 @@ Result: `{ok, pdf_path}`
 Args: `{name}`
 Result: `{ok, session_path}`
 
-Exports browser-wide cookies via `Storage.getCookies` to `~/.config/netra-browser/sessions/<name>.json`. v1: cookies only; localStorage deferred.
+Exports browser-wide cookies via `Storage.getCookies` to `~/.config/netra-browser/sessions/<name>.json`.
+
+`task_save_session` also captures **localStorage** (Plan H #7) for every origin currently open in any tab — uses the `DOMStorage` CDP domain on each target's session. The session JSON gets a `local_storage` map keyed by origin (e.g. `"https://example.com": {"auth_token": "..."}`).
+- **Args:** `{name, skip_local_storage?: bool}` (set `skip_local_storage` to keep behavior cookies-only).
+- **Returns:** `{ok, session_path, local_storage_origins: [string]}`.
+
+`task_load_session` applies cookies (always) and localStorage (per saved origin):
+- **Args:** `{name, skip_navigation?: bool}`. If `skip_navigation` is false (default), the bridge auto-opens a tab on each saved origin so its LS can be applied. If true, only origins with an already-open tab get LS applied — useful when the origin's root URL redirects elsewhere.
+- **Returns:** `{ok, local_storage_origins_applied: [string]}`. Origins where application failed (typically the origin's root redirected to a different host, breaking the frame-origin match `DOMStorage` requires) are silently skipped.
+
+sessionStorage is NOT captured (it's per-tab, not per-origin — saving and replaying is fundamentally weird; deferred).
 
 ### `task_action_diff`
 

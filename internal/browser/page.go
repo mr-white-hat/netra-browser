@@ -66,6 +66,13 @@ func (p *Page) send(ctx context.Context, method string, params any) (json.RawMes
 	return p.cdp.SendOnTarget(ctx, p.sessionID, method, params)
 }
 
+// SendCDP issues a raw CDP method on this Page's target session.
+// Public escape hatch for tools that need domains the typed Page API doesn't
+// wrap (e.g. DOMStorage in task_save_session).
+func (p *Page) SendCDP(ctx context.Context, method string, params any) (json.RawMessage, error) {
+	return p.send(ctx, method, params)
+}
+
 // Snapshot is filled in Task 7. The type is forward-declared here so locator.go
 // (Task 8) can reference Page.snapshot.
 type Snapshot struct {
