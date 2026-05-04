@@ -289,6 +289,12 @@ Each bridge gets its own `--project <name>` and `--lock <unique-path>`. `browser
 Active development is tracked in [`docs/superpowers/plans/`](docs/superpowers/plans/). What's next:
 
 **Plan G — Hotfixes + project groups + diagnose tool + speed defaults** ([shipped 2026-05-03](docs/superpowers/plans/2026-04-30-netra-browser-plan-g-hotfixes-and-projects.md))
+
+**Plan H — Companion ecosystem** ([scope](docs/superpowers/plans/QUEUED-plan-h-companion-ecosystem.md))
+- ✅ `netra-fanout` (Python concurrent multi-tab driver) — [`python/`](python/)
+- ✅ `netra-actions` (JS primitives bundle) — [`js/netra-actions.js`](js/netra-actions.js)
+- ⏸ `netra-classifier` deferred until call volume justifies dataset cost
+- ⏳ localStorage in sessions, SSE streaming, `netra-watch`, `netra-ocr`
 - Fix three v1 bugs found in the field (silent navigate no-op, eval shape, attach false-positive)
 - `--project <name>` flag for parallel agents on one Chrome with isolated tab visibility
 - `browser_diagnose` composite tool (one call replaces the 5-call diagnostic chain)

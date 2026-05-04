@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import os
 import threading
 import urllib.error
 import urllib.request
@@ -102,3 +103,52 @@ class Bridge:
 
     def navigate(self, target_id: str, url: str, **opts: Any) -> dict:
         return self.call("browser_navigate", {"target_id": target_id, "url": url, **opts})
+
+    # ------------------------------------------------------------------
+    # netra-actions JS bundle injection (Plan H component #5).
+    # ------------------------------------------------------------------
+
+    _actions_cache: Optional[str] = None
+
+    def inject_actions(self, target_id: str, *, path: Optional[str] = None) -> str:
+        """Inject the netra-actions JS bundle into target_id and return the bundle version.
+
+        After this call, helpers live at `window.__netra.*` in the page —
+        invoke them via `bridge.call("browser_eval", {target_id, expression: "window.__netra.detectFrameworks()"})`.
+
+        Args:
+            target_id: target to inject into.
+            path: explicit path to netra-actions.js. Default: search next to the
+                bridge binary, then fall back to a sibling `js/` dir of the
+                netra_fanout package, then env var NETRA_ACTIONS_JS.
+
+        Returns:
+            The bundle's version string (e.g. "0.1.0").
+        """
+        if Bridge._actions_cache is None:
+            Bridge._actions_cache = _load_actions_bundle(path)
+        res = self.call("browser_eval", {"target_id": target_id, "expression": Bridge._actions_cache})
+        return res.get("result")  # the IIFE returns __netra.version
+
+
+def _load_actions_bundle(explicit: Optional[str]) -> str:
+    """Locate netra-actions.js. Search order:
+    1. Explicit `path=` arg
+    2. NETRA_ACTIONS_JS env var
+    3. ../../js/netra-actions.js relative to this package (in-repo dev layout)
+    """
+    candidates: list[str] = []
+    if explicit:
+        candidates.append(explicit)
+    if os.environ.get("NETRA_ACTIONS_JS"):
+        candidates.append(os.environ["NETRA_ACTIONS_JS"])
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates.append(os.path.normpath(os.path.join(here, "..", "..", "js", "netra-actions.js")))
+
+    for c in candidates:
+        if c and os.path.isfile(c):
+            with open(c, "r", encoding="utf-8") as f:
+                return f.read()
+    raise FileNotFoundError(
+        "netra-actions.js not found. Tried: " + ", ".join(c for c in candidates if c)
+    )

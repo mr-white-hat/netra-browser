@@ -72,6 +72,18 @@ pytest
 
 Tests use an in-process HTTP fake of the bridge; no real Chrome needed.
 
+## netra-actions JS bundle
+
+Companion JS primitives library lives at [`../js/netra-actions.js`](../js/netra-actions.js). Inject it once per page, then call helpers via `browser_eval`:
+
+```python
+b.attach()
+tid = b.new_tab("https://example.com/dashboard")
+b.inject_actions(tid)  # reads ../js/netra-actions.js, injects via browser_eval
+# Now window.__netra.{extractTable, scrollToBottom, formAutoFill, detectFrameworks, openShadowRoots}
+rows = b.call("browser_eval", {"target_id": tid, "expression": "window.__netra.extractTable('table.results')"})["result"]
+```
+
 ## Roadmap
 
 - Async (`asyncio`) variant for callers already living in an event loop.
