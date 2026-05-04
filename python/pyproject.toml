@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netra-fanout"
+version = "0.1.0"
+description = "Concurrent multi-tab driver for the netra-browser MCP bridge"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "netra-browser contributors" }]
+keywords = ["mcp", "browser", "automation", "chrome", "cdp", "playwright"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/mr-white-hat/netra-browser"
+Issues = "https://github.com/mr-white-hat/netra-browser/issues"
+
+[tool.setuptools.packages.find]
+include = ["netra_fanout*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

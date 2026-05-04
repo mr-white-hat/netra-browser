@@ -28,6 +28,8 @@ Why split it out: the bridge should stay small, fast, and dependency-free. A 10M
 
 ### 1. `netra-classifier` — local page-state classifier
 
+> **Status (2026-05-04): deferred.** Skipped until call volume justifies the dataset cost (~5k labeled screenshots, 3-5 days fine-tune). At <1k page-state checks/day the math doesn't pay back vs paying Claude per call. When revisited on Apple Silicon: run on the macOS host (Metal/Neural Engine), VM calls over HTTP — never inside a VM (no GPU passthrough on M-series).
+
 A small HTTP service that takes a screenshot (PNG bytes or path) and returns `{state, confidence, alternatives}`.
 
 **States** (initial v1 set, expandable via fine-tune):
