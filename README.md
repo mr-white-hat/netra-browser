@@ -195,10 +195,27 @@ All accept the locator union `{role, name} \| {text} \| {snapshot_id} \| {css} \
 | `browser_handle_dialog` | Accept/dismiss `alert`/`confirm`/`prompt` |
 | `browser_diagnose` | Composite "is anything wrong?" — health + tab check + screenshot + snapshot + recent events |
 
+### Emulation
+| Tool | Purpose |
+|---|---|
+| `browser_set_viewport` | `setDeviceMetricsOverride` (width, height, scale factor, mobile). Zero dimensions clear the override. |
+| `browser_emulate_device` | Preset table: `iphone_14`, `iphone_se`, `pixel_8`, `ipad_pro`, `desktop_1080p`, `desktop_macbook` — applies viewport + UA in one call |
+| `browser_list_device_presets` | Discover the preset names |
+| `browser_set_user_agent` | `setUserAgentOverride` |
+| `browser_set_geolocation` | `setGeolocationOverride` (zero-arg clears) |
+| `browser_set_offline` | Toggle `Network.emulateNetworkConditions` to fail every request with `net::ERR_INTERNET_DISCONNECTED` |
+| `browser_block_urls` | Block a list of wildcard URL patterns at the network layer (analytics, ads, third-party trackers); empty list clears |
+
+### Performance
+| Tool | Purpose |
+|---|---|
+| `browser_get_vitals` | Install a `PerformanceObserver` on first call and read Core Web Vitals — LCP, CLS, FCP, TTFB, INP. `wait_ms` lets observers accumulate (1500–3000 typical post-navigation). |
+
 ### High-level tasks (`task_*`)
 | Tool | Purpose |
 |---|---|
 | `task_capture_har` | Build a HAR 1.2 file from a window of network activity |
+| `task_capture_trace` | Record a Chrome `chrome://tracing` trace — Perfetto-shaped JSON, loadable in [Perfetto UI](https://ui.perfetto.dev) or Chrome DevTools Performance panel |
 | `task_render_pdf` | Print page to PDF (Letter / A4) |
 | `task_save_session` / `task_load_session` | Browser-wide cookie persistence by name |
 | `task_wait_for_download` | Set download dir, optionally trigger an action, wait for completion |
@@ -295,27 +312,23 @@ Active development is tracked in [`docs/superpowers/plans/`](docs/superpowers/pl
 **Plan H — Companion ecosystem** ([scope](docs/superpowers/plans/QUEUED-plan-h-companion-ecosystem.md))
 - ✅ `netra-fanout` (Python concurrent multi-tab driver) — [`python/`](python/)
 - ✅ `netra-actions` (JS primitives bundle) — [`js/netra-actions.js`](js/netra-actions.js)
-- ✅ localStorage in `task_save_session` / `task_load_session` (Plan H #7)
-- ✅ SSE event streaming on `/events` (Plan H #6)
+- ✅ localStorage in `task_save_session` / `task_load_session`
+- ✅ SSE event streaming on `/events`
 - ⏸ `netra-classifier` deferred until call volume justifies dataset cost
 - ⏳ `netra-watch`, `netra-ocr`
-- Fix three v1 bugs found in the field (silent navigate no-op, eval shape, attach false-positive)
-- `--project <name>` flag for parallel agents on one Chrome with isolated tab visibility
-- `browser_diagnose` composite tool (one call replaces the 5-call diagnostic chain)
-- Coordinate-based interaction (`browser_click_at`, `browser_hover_at`, `browser_drag`) for canvas / SVG / drag-drop
-- Server-side speed defaults (shorter timeouts, leaner snapshots)
-- Network response/request bodies in events (currently metadata only)
-- Action-diff helper (return what changed during an action)
-- Workflow recipe replay (save/replay deterministic interaction sequences)
 
-**Plan H — Companion ecosystem** ([scope](docs/superpowers/plans/QUEUED-plan-h-companion-ecosystem.md))
-- Sidecar local page-state classifier (small ViT/CLIP) returning `{state: "login_form" \| "captcha" \| "dashboard" \| ...}` so agents skip a reasoning turn on routine pages
-- Concurrent multi-tab fan-out helper for parallel work in one Chrome
-- Visual regression diff (perceptual hash) for monitoring page changes over time
-- OCR fallback for canvas / image-heavy pages where DOM is opaque
-- Bundled JS primitives library injected into pages so agents call pre-baked helpers via `browser_eval` instead of writing one-off probes
-- Streaming MCP notifications (currently `/events` is reserved/204)
-- localStorage / sessionStorage in `task_save_session`
+**Plan I — Drag-drop file uploads** (shipped)
+- ✅ `browser_drop_files` — auto-detects hidden file input, falls back to native CDP drag sequence
+
+**Resource hygiene + emulation suite** (shipped 2026-05-16)
+- ✅ Stopped a long-standing CDP subscription leak: `Subscribe` / `SubscribeOnTarget` return `(chan, cleanup)`, `Page.Close` tears down every collector goroutine, `browser_close_tab` reaps server-side state, and `Target.targetDestroyed` reaps user-closed tabs. RingBuffer rewritten head/tail (O(1)).
+- ✅ Nine new MCP tools: viewport / device / UA / geo / offline emulation, Web Vitals, Chrome trace recording, URL blocking. Friendly tab IDs (`t1`, `t2`, …) surfaced alongside CDP target IDs.
+
+**Deferred (separate PRs)**
+- Full Fetch-domain request interception (mock/modify, not just block)
+- Snapshot / screenshot diffing against a baseline
+- Encrypted state files for `task_save_session` (AES-GCM)
+- React DevTools introspection
 
 Already-shipped roadmap is tagged: `plan-a-foundation` → `plan-f-release`.
 
@@ -343,4 +356,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Status
 
-v0.x — actively developed. Core feature set (Plans A-F) complete and tagged. Plan G hotfixes scoped and queued. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for original design.
+v0.x — actively developed. Core feature set (Plans A-F) complete and tagged; Plans G–I shipped; resource-hygiene rewrite + emulation suite landed 2026-05-16. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for original design.
