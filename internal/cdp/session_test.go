@@ -72,7 +72,8 @@ func TestSubscribeOnTargetFiltersBySession(t *testing.T) {
 
 	c, _ := Dial(context.Background(), url)
 	defer c.Close()
-	ch := c.SubscribeOnTarget("S1", "Page.frameNavigated")
+	ch, cleanup := c.SubscribeOnTarget("S1", "Page.frameNavigated")
+	defer cleanup()
 	select {
 	case e := <-ch:
 		if e.SessionID != "S1" {

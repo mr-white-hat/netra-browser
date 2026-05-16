@@ -23,13 +23,13 @@ func newPumpable() *pumpableSender {
 }
 
 // Override SubscribeOnTarget so it returns the per-method channel from the map.
-func (p *pumpableSender) SubscribeOnTarget(_, method string) chan cdp.BufferedEvent {
+func (p *pumpableSender) SubscribeOnTarget(_, method string) (<-chan cdp.BufferedEvent, func()) {
 	ch, ok := p.events[method]
 	if !ok {
 		ch = make(chan cdp.BufferedEvent, 4)
 		p.events[method] = ch
 	}
-	return ch
+	return ch, func() {}
 }
 
 func (p *pumpableSender) push(method string) {

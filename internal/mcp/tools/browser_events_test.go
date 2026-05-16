@@ -23,8 +23,8 @@ func (f *fakeNoEventSender) SendOnTarget(ctx context.Context, _, m string, _ any
 func (f *fakeNoEventSender) AttachToTarget(ctx context.Context, t string) (string, error) {
 	return "S-" + t, nil
 }
-func (f *fakeNoEventSender) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
-	return make(chan cdp.BufferedEvent) // no events — caller will timeout
+func (f *fakeNoEventSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
+	return make(chan cdp.BufferedEvent), func() {} // no events — caller will timeout
 }
 func (f *fakeNoEventSender) Close() error { return nil }
 

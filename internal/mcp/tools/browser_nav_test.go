@@ -33,10 +33,10 @@ func (f *fakeFullSender) SendOnTarget(ctx context.Context, _, m string, _ any) (
 func (f *fakeFullSender) AttachToTarget(ctx context.Context, t string) (string, error) {
 	return "S-" + t, nil
 }
-func (f *fakeFullSender) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+func (f *fakeFullSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
 	ch := make(chan cdp.BufferedEvent, 1)
 	ch <- cdp.BufferedEvent{}
-	return ch
+	return ch, func() {}
 }
 func (f *fakeFullSender) Close() error { return nil }
 

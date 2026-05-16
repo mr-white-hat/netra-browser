@@ -119,20 +119,21 @@ func (c *Client) readPump() {
 	}
 }
 
-// Subscribe returns a channel that receives BufferedEvents whose Method matches.
-// Channel is buffered (16); if full, events are dropped for that subscriber.
-func (c *Client) Subscribe(method string) chan BufferedEvent {
+// Subscribe returns a channel that receives BufferedEvents whose Method matches,
+// plus a cleanup func that removes the subscription. Channel is buffered (16);
+// if full, events are dropped for that subscriber. The cleanup is idempotent
+// and MUST be called when the subscriber is done — otherwise the channel stays
+// registered on the dispatcher and the consumer goroutine leaks.
+func (c *Client) Subscribe(method string) (<-chan BufferedEvent, func()) {
 	ch := make(chan BufferedEvent, 16)
 	v, _ := c.subs.LoadOrStore(method, &eventSubList{})
-	v.(*eventSubList).add(ch)
-	return ch
-}
-
-// Unsubscribe removes a channel previously returned by Subscribe.
-func (c *Client) Unsubscribe(method string, ch chan BufferedEvent) {
-	if v, ok := c.subs.Load(method); ok {
-		v.(*eventSubList).remove(ch)
+	list := v.(*eventSubList)
+	list.add(ch)
+	var once sync.Once
+	cleanup := func() {
+		once.Do(func() { list.remove(ch) })
 	}
+	return ch, cleanup
 }
 
 func (c *Client) dispatchEvent(e Event) {

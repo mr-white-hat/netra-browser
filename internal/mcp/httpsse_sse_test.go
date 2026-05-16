@@ -28,10 +28,10 @@ func (f *fakeSSESender) SendOnTarget(ctx context.Context, _, m string, _ any) (j
 func (f *fakeSSESender) AttachToTarget(ctx context.Context, t string) (string, error) {
 	return "S-" + t, nil
 }
-func (f *fakeSSESender) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+func (f *fakeSSESender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
 	// Return a channel that never delivers — startEventCollector will idle and
 	// fanoutEvent (which we drive manually in the test) will reach our subs.
-	return make(chan cdp.BufferedEvent)
+	return make(chan cdp.BufferedEvent), func() {}
 }
 func (f *fakeSSESender) Close() error { return nil }
 

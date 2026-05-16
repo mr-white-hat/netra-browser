@@ -36,10 +36,10 @@ func (f *fakeSender) SendOnTarget(ctx context.Context, session, method string, p
 func (f *fakeSender) AttachToTarget(ctx context.Context, targetID string) (string, error) {
 	return "S-" + targetID, nil
 }
-func (f *fakeSender) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+func (f *fakeSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
 	ch := make(chan cdp.BufferedEvent, 1)
 	ch <- cdp.BufferedEvent{} // immediately satisfies the wait
-	return ch
+	return ch, func() {}
 }
 
 func TestNewPageAttaches(t *testing.T) {
@@ -54,6 +54,37 @@ func TestNewPageAttaches(t *testing.T) {
 	if p.TargetID() != "T1" {
 		t.Fatalf("target: %q", p.TargetID())
 	}
+}
+
+// TestPageCloseIsIdempotentAndStopsCollectors verifies that closing a Page
+// runs every collector cleanup exactly once and is safe to call repeatedly.
+// This is the unit-level guard for the close-tab → DropPage → Page.Close path.
+func TestPageCloseIsIdempotentAndStopsCollectors(t *testing.T) {
+	var cleaned int
+	f := &cleanupCountingSender{onCleanup: func() { cleaned++ }}
+	p, err := NewPage(context.Background(), f, "T1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := len(collectedEvents)
+	p.Close()
+	if cleaned != expected {
+		t.Fatalf("expected %d cleanups after first Close, got %d", expected, cleaned)
+	}
+	p.Close() // idempotent
+	if cleaned != expected {
+		t.Fatalf("Close should be idempotent; cleaned now %d", cleaned)
+	}
+}
+
+type cleanupCountingSender struct {
+	fakeSender
+	onCleanup func()
+}
+
+func (c *cleanupCountingSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
+	ch := make(chan cdp.BufferedEvent, 1)
+	return ch, c.onCleanup
 }
 
 func TestPageEnableDomainsCalled(t *testing.T) {

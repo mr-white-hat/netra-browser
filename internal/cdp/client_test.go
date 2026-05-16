@@ -62,6 +62,10 @@ func TestClientSendErrorPropagates(t *testing.T) {
 		var m Method
 		_ = c.ReadJSON(&m)
 		_ = c.WriteJSON(Response{ID: m.ID, Error: &Error{Code: -1, Message: "bad"}})
+		// Give the client's readPump a chance to deliver the response before
+		// the deferred Close races ahead and the client sees an abnormal
+		// closure instead of the typed error.
+		time.Sleep(50 * time.Millisecond)
 	})
 	defer stop()
 

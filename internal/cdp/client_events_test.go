@@ -25,7 +25,8 @@ func TestClientSubscribeReceivesEvent(t *testing.T) {
 	}
 	defer c.Close()
 
-	ch := c.Subscribe("Page.frameNavigated")
+	ch, cleanup := c.Subscribe("Page.frameNavigated")
+	defer cleanup()
 	select {
 	case e := <-ch:
 		if e.Method != "Page.frameNavigated" {
@@ -48,12 +49,14 @@ func TestClientUnsubscribeStopsDelivery(t *testing.T) {
 
 	c, _ := Dial(context.Background(), url)
 	defer c.Close()
-	ch := c.Subscribe("Page.x")
-	c.Unsubscribe("Page.x", ch)
+	ch, cleanup := c.Subscribe("Page.x")
+	cleanup()
 	// drain a bit; should remain empty
 	select {
-	case <-ch:
-		t.Fatal("expected no events after unsubscribe")
+	case e, ok := <-ch:
+		if ok {
+			t.Fatalf("expected no events after cleanup, got %v", e)
+		}
 	case <-time.After(300 * time.Millisecond):
 	}
 }

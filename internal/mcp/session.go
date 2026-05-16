@@ -35,6 +35,10 @@ type Session struct {
 	activeTarget string
 	pages        map[string]*browser.Page
 	project      ProjectScope
+	// clientCloser is an optional hook installed at attach time (e.g. the
+	// target-lifecycle watcher) that must be stopped before the underlying
+	// client is closed.
+	clientCloser func()
 }
 
 func NewSession() *Session { return &Session{pages: map[string]*browser.Page{}} }
@@ -59,6 +63,15 @@ func (s *Session) SetClient(c CDPSender) {
 	s.client = c
 }
 
+// SetClientCloser registers a func to be invoked just before the active client
+// is closed (typically a target-lifecycle watcher's stop func). Overwrites any
+// previously registered closer.
+func (s *Session) SetClientCloser(stop func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.clientCloser = stop
+}
+
 func (s *Session) Client() CDPSender {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -73,13 +86,25 @@ func (s *Session) IsAttached() bool {
 
 func (s *Session) Clear() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	pages := s.pages
+	s.pages = map[string]*browser.Page{}
+	closer := s.clientCloser
+	s.clientCloser = nil
 	if s.client != nil {
+		// Stop the lifecycle watcher (if any) before closing the underlying
+		// websocket — otherwise the watcher's read returns an error and races
+		// against Close.
+		if closer != nil {
+			closer()
+		}
 		_ = s.client.Close()
 		s.client = nil
 	}
 	s.activeTarget = ""
-	s.pages = map[string]*browser.Page{}
+	s.mu.Unlock()
+	for _, p := range pages {
+		p.Close()
+	}
 }
 
 // Page returns a cached *browser.Page for targetID, creating it on first touch.
@@ -104,11 +129,19 @@ func (s *Session) Page(ctx context.Context, targetID string) (*browser.Page, err
 	return p, nil
 }
 
-// DropPage clears a cached page (so next access re-attaches).
+// DropPage clears a cached page (so next access re-attaches) and tears down
+// its collector goroutines + CDP subscriptions. Safe to call for an unknown
+// targetID.
 func (s *Session) DropPage(targetID string) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.pages, targetID)
+	p, ok := s.pages[targetID]
+	if ok {
+		delete(s.pages, targetID)
+	}
+	s.mu.Unlock()
+	if ok {
+		p.Close()
+	}
 }
 
 func (s *Session) SetActiveTarget(id string) {

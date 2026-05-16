@@ -43,8 +43,8 @@ func (*fakeCDP) SendOnTarget(ctx context.Context, _, _ string, _ any) (json.RawM
 func (*fakeCDP) AttachToTarget(ctx context.Context, t string) (string, error) {
 	return "S-" + t, nil
 }
-func (*fakeCDP) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+func (*fakeCDP) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
 	ch := make(chan cdp.BufferedEvent, 1)
 	ch <- cdp.BufferedEvent{}
-	return ch
+	return ch, func() {}
 }

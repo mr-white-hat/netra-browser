@@ -56,21 +56,37 @@ func (p *Page) fanoutEvent(e cdp.BufferedEvent) {
 	}
 }
 
-// startEventCollector subscribes to the fixed event set and pushes each event into the page's RingBuffer.
-func (p *Page) startEventCollector(ctx context.Context) {
+// startEventCollector subscribes to the fixed event set and pushes each event
+// into the page's RingBuffer. Cleanups are stored on the Page so Close can tear
+// down both the source subscription and the consumer goroutine for every
+// method — preventing the historical leak where each per-tab subscription
+// stayed registered with the CDP dispatcher forever.
+func (p *Page) startEventCollector(_ context.Context) {
 	for _, m := range collectedEvents {
 		method := m
-		ch := p.cdp.SubscribeOnTarget(p.sessionID, method)
+		ch, cleanup := p.cdp.SubscribeOnTarget(p.sessionID, method)
+		p.closeMu.Lock()
+		p.collectorCleanups = append(p.collectorCleanups, cleanup)
+		closedCh := p.closedCh
+		p.closeMu.Unlock()
 		go func() {
-			for e := range ch {
-				if e.Method == "" {
-					e.Method = method
+			for {
+				select {
+				case <-closedCh:
+					return
+				case e, ok := <-ch:
+					if !ok {
+						return
+					}
+					if e.Method == "" {
+						e.Method = method
+					}
+					if e.At.IsZero() {
+						e.At = time.Now()
+					}
+					p.events.Add(e)
+					p.fanoutEvent(e)
 				}
-				if e.At.IsZero() {
-					e.At = time.Now()
-				}
-				p.events.Add(e)
-				p.fanoutEvent(e)
 			}
 		}()
 	}

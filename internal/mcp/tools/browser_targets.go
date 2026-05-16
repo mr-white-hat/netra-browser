@@ -135,6 +135,11 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 		if proj := sess.Project(); proj != nil {
 			_ = proj.Release(args.TargetID)
 		}
+		// Tear down the Page (and its collector goroutines + CDP subs) so the
+		// closed tab does not leak. Tabs closed by the user — not via this
+		// tool — get reaped by the Target.targetDestroyed listener installed
+		// in cmd/netra-browser.
+		sess.DropPage(args.TargetID)
 		return map[string]any{"ok": true}, nil
 	})
 

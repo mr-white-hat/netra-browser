@@ -35,9 +35,9 @@ func (f *fakeBodyEventsSender) SendOnTarget(ctx context.Context, _, m string, _ 
 func (f *fakeBodyEventsSender) AttachToTarget(ctx context.Context, t string) (string, error) {
 	return "S-" + t, nil
 }
-func (f *fakeBodyEventsSender) SubscribeOnTarget(_, _ string) chan cdp.BufferedEvent {
+func (f *fakeBodyEventsSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
 	ch := make(chan cdp.BufferedEvent, 1)
-	return ch
+	return ch, func() {}
 }
 func (f *fakeBodyEventsSender) Close() error { return nil }
 

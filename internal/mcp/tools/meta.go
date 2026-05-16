@@ -69,10 +69,27 @@ func RegisterMeta(reg *mcp.Registry, sess *mcp.Session, deps MetaDeps) {
 			return mcp.ToolError{Code: mcp.ErrChromeDead, Message: err.Error()}.AsResult(), nil
 		}
 		sess.SetClient(client)
+		// Install a target-lifecycle watcher when the client supports it (the
+		// real *cdp.Client does; test fakes don't). Tabs the user closes in
+		// Chrome's UI emit Target.targetDestroyed; this watcher reaps the
+		// matching Page so its collector goroutines + ring buffer don't leak.
+		if w, ok := client.(targetWatcher); ok {
+			if stop, werr := w.WatchTargets(context.Background(), sess.DropPage); werr == nil {
+				sess.SetClientCloser(stop)
+			}
+		}
 		return map[string]any{
 			"ok":             true,
 			"chrome_version": version,
 			"target_count":   targetCount,
 		}, nil
 	})
+}
+
+// targetWatcher is what meta_attach needs from a CDP client to wire up target
+// lifecycle cleanup. *cdp.Client satisfies it; test fakes do not, so the
+// reaping is a no-op under tests (which never produce real targetDestroyed
+// events anyway).
+type targetWatcher interface {
+	WatchTargets(ctx context.Context, onDestroyed func(targetID string)) (func(), error)
 }

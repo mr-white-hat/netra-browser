@@ -31,8 +31,10 @@ func (p *Page) WaitForDownload(ctx context.Context, trigger func() error, saveTo
 		return nil, err
 	}
 
-	willBegin := p.cdp.SubscribeOnTarget(p.sessionID, "Browser.downloadWillBegin")
-	progress := p.cdp.SubscribeOnTarget(p.sessionID, "Browser.downloadProgress")
+	willBegin, stopWillBegin := p.cdp.SubscribeOnTarget(p.sessionID, "Browser.downloadWillBegin")
+	defer stopWillBegin()
+	progress, stopProgress := p.cdp.SubscribeOnTarget(p.sessionID, "Browser.downloadProgress")
+	defer stopProgress()
 
 	if trigger != nil {
 		if err := trigger(); err != nil {
