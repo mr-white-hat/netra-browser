@@ -12,6 +12,9 @@ import (
 func TestClientSubscribeReceivesEvent(t *testing.T) {
 	url, stop := fakeChrome(t, func(c *websocket.Conn) {
 		defer c.Close()
+		// Hold briefly so the test goroutine has time to call Subscribe
+		// before readPump dispatches the event past an empty subscriber list.
+		time.Sleep(100 * time.Millisecond)
 		_ = c.WriteJSON(Event{Method: "Page.frameNavigated", Params: json.RawMessage(`{"frame":{"id":"f1"}}`)})
 		time.Sleep(200 * time.Millisecond)
 	})

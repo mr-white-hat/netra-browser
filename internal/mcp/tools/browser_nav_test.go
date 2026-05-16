@@ -34,9 +34,10 @@ func (f *fakeFullSender) AttachToTarget(ctx context.Context, t string) (string, 
 	return "S-" + t, nil
 }
 func (f *fakeFullSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
-	ch := make(chan cdp.BufferedEvent, 1)
-	ch <- cdp.BufferedEvent{}
-	return ch, func() {}
+	// Continuously refill so any addEventSub registered AFTER the collector
+	// starts pumping still gets dispatched — closes the pre-existing race
+	// where a single buffered event could be drained before a sub registered.
+	return continuouslyEmptyEvents()
 }
 func (f *fakeFullSender) Close() error { return nil }
 

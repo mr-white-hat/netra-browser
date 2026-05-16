@@ -89,8 +89,6 @@ func (p *programmableSender) AttachToTarget(ctx context.Context, t string) (stri
 	return "S-" + t, nil
 }
 func (p *programmableSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
-	ch := make(chan cdp.BufferedEvent, 1)
-	ch <- cdp.BufferedEvent{Method: "Page.loadEventFired"}
-	return ch, func() {}
+	return continuouslyEmptyEvents()
 }
 func (p *programmableSender) Close() error { return nil }

@@ -17,6 +17,10 @@ func TestAttachToTargetReturnsSession(t *testing.T) {
 			return
 		}
 		_ = c.WriteJSON(Response{ID: m.ID, Result: json.RawMessage(`{"sessionId":"S1"}`)})
+		// Hold the connection open briefly so readPump delivers the response
+		// before the deferred Close races ahead and the client sees an
+		// abnormal closure instead.
+		time.Sleep(50 * time.Millisecond)
 	})
 	defer stop()
 
@@ -46,6 +50,7 @@ func TestSendOnTargetIncludesSessionID(t *testing.T) {
 		}
 		got <- m
 		_ = c.WriteJSON(Response{ID: m.ID, Result: json.RawMessage(`{}`)})
+		time.Sleep(50 * time.Millisecond) // let response deliver before deferred Close
 	})
 	defer stop()
 
@@ -64,6 +69,10 @@ func TestSendOnTargetIncludesSessionID(t *testing.T) {
 func TestSubscribeOnTargetFiltersBySession(t *testing.T) {
 	url, stop := fakeChrome(t, func(c *websocket.Conn) {
 		defer c.Close()
+		// Hold briefly so the test goroutine registers its sub before
+		// readPump races past an empty subscriber list ("event missing"
+		// flake under -race).
+		time.Sleep(100 * time.Millisecond)
 		_ = c.WriteJSON(Event{Method: "Page.frameNavigated", Params: json.RawMessage(`{}`), SessionID: "S1"})
 		_ = c.WriteJSON(Event{Method: "Page.frameNavigated", Params: json.RawMessage(`{}`), SessionID: "S2"})
 		time.Sleep(200 * time.Millisecond)

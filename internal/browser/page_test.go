@@ -37,9 +37,7 @@ func (f *fakeSender) AttachToTarget(ctx context.Context, targetID string) (strin
 	return "S-" + targetID, nil
 }
 func (f *fakeSender) SubscribeOnTarget(_, _ string) (<-chan cdp.BufferedEvent, func()) {
-	ch := make(chan cdp.BufferedEvent, 1)
-	ch <- cdp.BufferedEvent{} // immediately satisfies the wait
-	return ch, func() {}
+	return continuouslyEmptyEvents()
 }
 
 func TestNewPageAttaches(t *testing.T) {

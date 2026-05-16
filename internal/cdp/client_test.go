@@ -35,6 +35,7 @@ func TestClientSendReceivesResponse(t *testing.T) {
 			return
 		}
 		_ = c.WriteJSON(Response{ID: m.ID, Result: json.RawMessage(`{"ok":true}`)})
+		time.Sleep(50 * time.Millisecond) // let response deliver before deferred Close
 	})
 	defer stop()
 
