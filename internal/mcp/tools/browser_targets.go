@@ -48,6 +48,7 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 			}
 			row := map[string]any{
 				"target_id": ti.TargetID,
+				"tab_id":    sess.TabIDFor(ti.TargetID),
 				"url":       ti.URL,
 				"title":     ti.Title,
 				"active":    ti.TargetID == active,
@@ -86,7 +87,11 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 		if proj := sess.Project(); proj != nil && resp.TargetID != "" {
 			_ = proj.Adopt(resp.TargetID)
 		}
-		return map[string]any{"ok": true, "target_id": resp.TargetID}, nil
+		return map[string]any{
+			"ok":        true,
+			"target_id": resp.TargetID,
+			"tab_id":    sess.TabIDFor(resp.TargetID),
+		}, nil
 	})
 
 	reg.Register("browser_select_tab", func(ctx context.Context, params json.RawMessage) (any, error) {
@@ -100,6 +105,7 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 		if err := json.Unmarshal(params, &args); err != nil || args.TargetID == "" {
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "target_id required"}.AsResult(), nil
 		}
+		args.TargetID = sess.ResolveTabID(args.TargetID)
 		_, err := client.Send(ctx, "Target.activateTarget", map[string]any{"targetId": args.TargetID})
 		if err != nil {
 			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
@@ -119,6 +125,7 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 		if len(params) > 0 {
 			_ = json.Unmarshal(params, &args)
 		}
+		args.TargetID = sess.ResolveTabID(args.TargetID)
 		if args.TargetID == "" {
 			args.TargetID = sess.ActiveTarget()
 		}

@@ -2,7 +2,7 @@
 
 > **Bring your own Chrome — the missing MCP bridge for AI agents that need a real, logged-in browser.**
 
-`netra-browser` is a single-binary Go bridge that connects AI agents (Claude Code, Claude Desktop, Cursor, Gemini, anything speaking [MCP](https://modelcontextprotocol.io)) to your **real Chrome** — the one with your cookies, MFA, corporate proxy, and installed extensions. **31 MCP tools** for navigation, snapshotting, interaction, network capture, file uploads, dialogs, screenshots, JS evaluation, cookie management, HAR capture, PDF render, and session persistence — all over a single attached or launched Chrome instance.
+`netra-browser` is a single-binary Go bridge that connects AI agents (Claude Code, Claude Desktop, Cursor, Gemini, anything speaking [MCP](https://modelcontextprotocol.io)) to your **real Chrome** — the one with your cookies, MFA, corporate proxy, and installed extensions. **40 MCP tools** for navigation, snapshotting, interaction, network capture and blocking, viewport / device / geolocation / offline emulation, Web Vitals, Chrome traces, file uploads, dialogs, screenshots, JS evaluation, cookie management, HAR capture, PDF render, and session persistence — all over a single attached or launched Chrome instance.
 
 [![tests](https://img.shields.io/badge/tests-passing-success)](https://github.com/mr-white-hat/netra-browser/actions) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![go](https://img.shields.io/badge/go-1.22+-00ADD8)](go.mod)
 
@@ -18,7 +18,7 @@ Most browser-automation tools (Playwright, Puppeteer, Selenium, Browserbase) lau
 - **Stateful workflows:** drag-drop a file, scroll halfway down, fill three fields, then ask the AI to take over — fresh-launch tools start at zero.
 - **Stable fingerprints:** sites that fingerprint browsers flag a fresh Playwright instance as a bot. Your daily Chrome doesn't get flagged.
 
-`netra-browser` solves all five by **attaching to (or launching) your actual Chrome** via the [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/), then exposing 31 high-level tools over MCP that any modern AI agent can drive.
+`netra-browser` solves all five by **attaching to (or launching) your actual Chrome** via the [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/), then exposing 40 high-level tools over MCP that any modern AI agent can drive.
 
 ---
 
@@ -31,7 +31,8 @@ Most browser-automation tools (Playwright, Puppeteer, Selenium, Browserbase) lau
 - **Two transports, same tool surface.** stdio for local MCP clients (Claude Desktop, Claude Code), HTTP-SSE for remote / multi-client / Docker.
 - **Session persistence built in.** `task_save_session` exports browser-wide cookies; `task_load_session` restores them into a fresh Chrome. No more re-MFA loops.
 - **First-class network and event observability.** `browser_get_recent_events` exposes the network log, console output, and dialog events. `task_capture_har` produces standard HAR 1.2 for offline analysis.
-- **31 tools across 4 namespaces.** `meta_*` (3 tools, lifecycle), `browser_*` (22 tools, page-level), `task_*` (6 tools, high-level workflows). Comprehensive enough that you rarely have to drop into raw `browser_eval`.
+- **40 tools across 4 namespaces.** `meta_*` (3 tools, lifecycle), `browser_*` (30 tools, page-level), `task_*` (7 tools, high-level workflows). Comprehensive enough that you rarely have to drop into raw `browser_eval`.
+- **Friendly tab IDs.** `browser_list_tabs` and `browser_new_tab` return a short `tab_id` (`t1`, `t2`, …) alongside the raw 32-char `target_id`. Every tool accepts either.
 - **Honest test coverage.** 7 end-to-end tests against real headless Chromium prove the bridge actually drives a browser — not just unit tests against a mock.
 
 ---
@@ -86,7 +87,7 @@ Open Chrome with the debug port:
 google-chrome --remote-debugging-port=9222
 ```
 
-Restart Claude Desktop. You'll have all 31 tools available. Try:
+Restart Claude Desktop. You'll have all 40 tools available. Try:
 
 > Use `meta_attach`, then `browser_list_tabs`, and tell me what's open. Take a screenshot of the active tab.
 
@@ -110,7 +111,7 @@ Run Chrome yourself with `--remote-debugging-port=9222`, or pass `--launch` to l
 Claude Desktop: the JSON above. Claude Code: `claude mcp add netra-browser -- netra-browser`. Any other MCP client: point it at the binary's stdio or its HTTP-SSE endpoint.
 
 **3. Agent attaches.**
-First call is `meta_attach`. After that, the agent has 31 tools to navigate, inspect, interact, and capture.
+First call is `meta_attach`. After that, the agent has 40 tools to navigate, inspect, interact, and capture.
 
 **4. Drive the page.**
 Most flows: `browser_new_tab` → `browser_navigate` → `browser_snapshot` (accessibility tree with stable IDs) → `browser_click` / `browser_fill` (using `{role,name}` or `snapshot_id`) → repeat.

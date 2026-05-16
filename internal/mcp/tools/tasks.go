@@ -26,6 +26,47 @@ func RegisterHighLevelTasks(reg *mcp.Registry, sess *mcp.Session) {
 		return page, nil
 	}
 
+	reg.Register("task_capture_trace", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var a struct {
+			TargetID   string   `json:"target_id"`
+			DurationMS int      `json:"duration_ms"`
+			Categories []string `json:"categories"`
+		}
+		if len(params) > 0 {
+			_ = json.Unmarshal(params, &a)
+		}
+		page, errR := resolvePage(ctx, a.TargetID)
+		if errR != nil {
+			return *errR, nil
+		}
+		dur := time.Duration(a.DurationMS) * time.Millisecond
+		path, err := page.CaptureTrace(ctx, dur, a.Categories)
+		if err != nil {
+			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
+		}
+		return map[string]any{"ok": true, "trace_path": path}, nil
+	})
+
+	reg.Register("browser_block_urls", func(ctx context.Context, params json.RawMessage) (any, error) {
+		var a struct {
+			TargetID string   `json:"target_id"`
+			Patterns []string `json:"patterns"` // empty list clears blocking
+		}
+		if err := json.Unmarshal(params, &a); err != nil {
+			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: err.Error()}.AsResult(), nil
+		}
+		page, errR := resolvePage(ctx, a.TargetID)
+		if errR != nil {
+			return *errR, nil
+		}
+		if _, err := page.SendCDP(ctx, "Network.setBlockedURLs", map[string]any{
+			"urls": a.Patterns,
+		}); err != nil {
+			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
+		}
+		return map[string]any{"ok": true, "blocked": len(a.Patterns)}, nil
+	})
+
 	reg.Register("task_capture_har", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a struct {
 			URL        string `json:"url"`

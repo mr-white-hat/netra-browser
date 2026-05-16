@@ -181,7 +181,65 @@ Result: `{ok, chrome_alive, ws_alive, target_exists, target_id?, screenshot_png_
 
 Sub-calls fail independently; you always get a partial result so the agent can decide what to do next.
 
+## Emulation
+
+Tools for emulating viewports, devices, user agents, geolocation, and network conditions.
+
+### `browser_set_viewport`
+Args: `{target_id?, width, height, device_scale_factor?, mobile?}`
+Result: `{ok}`
+
+Pass `width: 0, height: 0` to clear the override.
+
+### `browser_emulate_device`
+Args: `{target_id?, device: "iphone_14"|"iphone_se"|"pixel_8"|"ipad_pro"|"desktop_1080p"|"desktop_macbook"}`
+Result: `{ok, device}`
+
+Applies viewport + (where defined) user-agent in one call.
+
+### `browser_list_device_presets`
+Args: none
+Result: `{ok, devices: [string]}`
+
+### `browser_set_user_agent`
+Args: `{target_id?, user_agent}`
+Result: `{ok}`
+
+Empty `user_agent` clears the override (page reverts to Chrome's default).
+
+### `browser_set_geolocation`
+Args: `{target_id?, latitude, longitude, accuracy?}`
+Result: `{ok}`
+
+All-zero args clear the override. Accuracy defaults to 100m.
+
+### `browser_set_offline`
+Args: `{target_id?, offline: bool}`
+Result: `{ok, offline}`
+
+When `offline: true`, every network request immediately fails with `net::ERR_INTERNET_DISCONNECTED`.
+
+### `browser_block_urls`
+Args: `{target_id?, patterns: [string]}`
+Result: `{ok, blocked: int}`
+
+Wildcard URL patterns blocked at the Network layer (e.g. `["*://*.googletagmanager.com/*","*://*.doubleclick.net/*"]`). Pass an empty list to clear.
+
+## Performance
+
+### `browser_get_vitals`
+Args: `{target_id?, wait_ms?}`
+Result: `{ok, vitals: {lcp, cls, fcp, ttfb, inp}}`
+
+Installs a `PerformanceObserver` on first call per page, waits `wait_ms` to let metrics accumulate (recommend 1500–3000 after navigation), and returns Core Web Vitals. `inp` is null until the user interacts; metrics yet to fire are null.
+
 ## Tasks
+
+### `task_capture_trace`
+Args: `{target_id?, duration_ms?, categories?: [string]}`
+Result: `{ok, trace_path}`
+
+Records a Chrome `chrome://tracing` trace for the given duration. Default categories cover the Web performance set (`devtools.timeline`, `loading`, `v8.execute`, …). Output is `trace.json`-shaped and can be loaded directly into [Perfetto](https://ui.perfetto.dev) or Chrome's Performance panel.
 
 ### `task_capture_har`
 Args: `{url?, duration_ms?, target_id?}`

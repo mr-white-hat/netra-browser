@@ -39,9 +39,56 @@ type Session struct {
 	// target-lifecycle watcher) that must be stopped before the underlying
 	// client is closed.
 	clientCloser func()
+	// Friendly short tab IDs (t1, t2, ...) layered on top of CDP target IDs
+	// so agents don't have to round-trip the 32-char hex string. Allocated
+	// lazily on first request per target_id; never reused once allocated.
+	nextTabSeq int
+	tabIDs     map[string]string // target_id → "tN"
 }
 
-func NewSession() *Session { return &Session{pages: map[string]*browser.Page{}} }
+func NewSession() *Session {
+	return &Session{
+		pages:  map[string]*browser.Page{},
+		tabIDs: map[string]string{},
+	}
+}
+
+// TabIDFor returns the short id (e.g. "t1") assigned to targetID, allocating
+// one on first call. Returns "" for an empty input.
+func (s *Session) TabIDFor(targetID string) string {
+	if targetID == "" {
+		return ""
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if id, ok := s.tabIDs[targetID]; ok {
+		return id
+	}
+	s.nextTabSeq++
+	id := fmt.Sprintf("t%d", s.nextTabSeq)
+	s.tabIDs[targetID] = id
+	return id
+}
+
+// ResolveTabID accepts either a CDP target_id or a friendly tab id ("t1") and
+// returns the underlying target_id. Unknown inputs pass through so an
+// unrelated string still produces a deterministic "no such target" downstream.
+func (s *Session) ResolveTabID(idOrTab string) string {
+	if idOrTab == "" {
+		return ""
+	}
+	if len(idOrTab) < 2 || idOrTab[0] != 't' {
+		return idOrTab
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for tid, label := range s.tabIDs {
+		if label == idOrTab {
+			return tid
+		}
+	}
+	return idOrTab
+}
 
 // SetProject installs the per-bridge project scope. Pass nil to disable scoping.
 func (s *Session) SetProject(p ProjectScope) {
