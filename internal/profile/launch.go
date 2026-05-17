@@ -81,7 +81,7 @@ func Launch(opts LaunchOpts) (*LaunchHandle, error) {
 	}
 
 	h := &LaunchHandle{cmd: cmd, debugURL: fmt.Sprintf("http://127.0.0.1:%d", port), dir: dir}
-	if err := h.waitReady(20 * time.Second); err != nil {
+	if err := h.waitReady(45 * time.Second); err != nil {
 		_ = h.Stop()
 		return nil, err
 	}
