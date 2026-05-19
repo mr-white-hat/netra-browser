@@ -8,7 +8,7 @@ import (
 )
 
 // targetExists asks Chrome for the live target list and reports whether tid is in it.
-// Used by tools that need to fail-fast against stale active-target IDs (Plan G hotfix).
+// Used by tools that need to fail-fast against stale active-target IDs.
 func targetExists(ctx context.Context, client mcp.CDPSender, tid string) (bool, error) {
 	if client == nil || tid == "" {
 		return false, nil

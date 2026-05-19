@@ -105,7 +105,7 @@ class Bridge:
         return self.call("browser_navigate", {"target_id": target_id, "url": url, **opts})
 
     # ------------------------------------------------------------------
-    # netra-actions JS bundle injection (Plan H component #5).
+    # netra-actions JS bundle injection.
     # ------------------------------------------------------------------
 
     _actions_cache: Optional[str] = None
@@ -132,7 +132,7 @@ class Bridge:
 
 
     # ------------------------------------------------------------------
-    # SSE event stream (Plan H component #6).
+    # SSE event stream.
     # ------------------------------------------------------------------
 
     def subscribe_events(self, target_id: str, *, types: Optional[list[str]] = None, timeout_s: float = 60.0):

@@ -2,7 +2,7 @@
 
 Concurrent multi-tab driver for the [netra-browser](../) MCP bridge. Open N tabs in one Chrome, run an independent task per tab in parallel, join the results.
 
-This is **Plan H component #2** — sidecar tooling that lives outside the bridge core. It will eventually move to its own repo; for now it ships in the same repo for fast iteration.
+Sidecar tooling that lives outside the bridge core. It may eventually move to its own repo; for now it ships in the same repo for fast iteration.
 
 ## Install
 
@@ -58,7 +58,7 @@ JSON-RPC client over the bridge's HTTP-SSE transport. Thread-safe.
 - Returns: list of `FanOutResult(label, target_id, ok, result, error)` in input order.
 - One task failing does **not** abort the others — failures are recorded in the result row.
 
-## How it composes with Plan G project isolation
+## How it composes with bridge project isolation
 
 When the bridge is started with `--project <name>`, every tab opened by `fan_out` (which uses `browser_new_tab` internally) is auto-tagged into that project. Multiple bridges, each with its own `--project`, each running their own `fan_out` against the same Chrome — no tab cross-talk.
 
@@ -103,5 +103,5 @@ The first yielded event is `{"event":"ready", ...}` confirming the connection. S
 ## Roadmap
 
 - Async (`asyncio`) variant for callers already living in an event loop.
-- `netra-fanout-node` — same surface for Node.js consumers (Plan H ships Python first).
+- `netra-fanout-node` — same surface for Node.js consumers (Python ships first).
 - Built-in retry / circuit-breaker per task.

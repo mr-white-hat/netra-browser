@@ -305,32 +305,22 @@ Each bridge gets its own `--project <name>` and `--lock <unique-path>`. `browser
 
 ## Roadmap
 
-Active development is tracked in [`docs/superpowers/plans/`](docs/superpowers/plans/). What's next:
+**Shipped**
+- Core bridge: lifecycle, navigation, snapshot, interaction, eval, cookies, screenshots — Plans A–F.
+- Hotfixes + project groups + `browser_diagnose` + speed defaults.
+- Companion ecosystem: `netra-fanout` (Python concurrent multi-tab driver, [`python/`](python/)), `netra-actions` (JS primitives bundle, [`js/netra-actions.js`](js/netra-actions.js)), localStorage in `task_save_session` / `task_load_session`, SSE event streaming on `/events`.
+- `browser_drop_files` — drag-drop file uploads (auto-detects hidden file input, falls back to native CDP drag sequence).
+- Resource hygiene: `Subscribe` / `SubscribeOnTarget` return `(chan, cleanup)`, `Page.Close` tears down every collector goroutine, `browser_close_tab` reaps server-side state, `Target.targetDestroyed` reaps user-closed tabs, O(1) RingBuffer.
+- Emulation suite (9 tools): viewport / device / UA / geo / offline emulation, Web Vitals, Chrome trace recording, URL blocking. Friendly tab IDs (`t1`, `t2`, …) surfaced alongside CDP target IDs.
 
-**Plan G — Hotfixes + project groups + diagnose tool + speed defaults** ([shipped 2026-05-03](docs/superpowers/plans/2026-04-30-netra-browser-plan-g-hotfixes-and-projects.md))
+**Next up / deferred**
+- Full Fetch-domain request interception (mock/modify, not just block).
+- Snapshot / screenshot diffing against a baseline.
+- Encrypted state files for `task_save_session` (AES-GCM).
+- React DevTools introspection.
+- `netra-classifier`, `netra-watch`, `netra-ocr` companion tools.
 
-**Plan H — Companion ecosystem** ([scope](docs/superpowers/plans/QUEUED-plan-h-companion-ecosystem.md))
-- ✅ `netra-fanout` (Python concurrent multi-tab driver) — [`python/`](python/)
-- ✅ `netra-actions` (JS primitives bundle) — [`js/netra-actions.js`](js/netra-actions.js)
-- ✅ localStorage in `task_save_session` / `task_load_session`
-- ✅ SSE event streaming on `/events`
-- ⏸ `netra-classifier` deferred until call volume justifies dataset cost
-- ⏳ `netra-watch`, `netra-ocr`
-
-**Plan I — Drag-drop file uploads** (shipped)
-- ✅ `browser_drop_files` — auto-detects hidden file input, falls back to native CDP drag sequence
-
-**Resource hygiene + emulation suite** (shipped 2026-05-16)
-- ✅ Stopped a long-standing CDP subscription leak: `Subscribe` / `SubscribeOnTarget` return `(chan, cleanup)`, `Page.Close` tears down every collector goroutine, `browser_close_tab` reaps server-side state, and `Target.targetDestroyed` reaps user-closed tabs. RingBuffer rewritten head/tail (O(1)).
-- ✅ Nine new MCP tools: viewport / device / UA / geo / offline emulation, Web Vitals, Chrome trace recording, URL blocking. Friendly tab IDs (`t1`, `t2`, …) surfaced alongside CDP target IDs.
-
-**Deferred (separate PRs)**
-- Full Fetch-domain request interception (mock/modify, not just block)
-- Snapshot / screenshot diffing against a baseline
-- Encrypted state files for `task_save_session` (AES-GCM)
-- React DevTools introspection
-
-Already-shipped roadmap is tagged: `plan-a-foundation` → `plan-f-release`.
+Foundational milestones are tagged in git: `plan-a-foundation` → `plan-f-release`.
 
 ---
 
@@ -346,7 +336,7 @@ PRs and issues welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). Areas where help
 
 - New examples in [`examples/`](examples/)
 - Cross-platform launch testing (macOS, Windows)
-- Companion-ecosystem items from Plan H (most are sidecar tools that don't require touching the bridge)
+- Companion-ecosystem sidecar tools (`netra-classifier`, `netra-watch`, `netra-ocr`) — most don't require touching the bridge
 
 ---
 
@@ -356,4 +346,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Status
 
-v0.x — actively developed. Core feature set (Plans A-F) complete and tagged; Plans G–I shipped; resource-hygiene rewrite + emulation suite landed 2026-05-16. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for original design.
+v0.x — actively developed. Core feature set complete and tagged; companion ecosystem, drag-drop uploads, resource-hygiene rewrite, and emulation suite all shipped. See [`docs/tools.md`](docs/tools.md) for the full tool reference.

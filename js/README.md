@@ -1,6 +1,6 @@
 # netra-actions — JS primitives for netra-browser agents
 
-Plan H component #5. A versioned single-file JS bundle agents inject via `browser_eval`, exposing pre-baked DOM helpers under `window.__netra.*`.
+A versioned single-file JS bundle agents inject via `browser_eval`, exposing pre-baked DOM helpers under `window.__netra.*`.
 
 ## Why
 

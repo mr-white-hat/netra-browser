@@ -118,7 +118,7 @@ Result: `{ok}`
 
 ### `browser_drop_files`
 
-Drag-drop file upload that auto-detects the right mechanism. Plan I composite.
+Drag-drop file upload that auto-detects the right mechanism.
 
 - Args: `{locator, file_paths: [string], target_id?, verify?: {locator?, text?, timeout_ms?}}`
 - Result: `{ok, mode: "hidden_input"|"synthetic_drag", verified?: bool, error?}`
@@ -164,7 +164,7 @@ Result: `{ok}`
 
 ### SSE event stream — `GET /events` (HTTP-SSE transport)
 
-Plan H #6. Live tail of CDP events instead of polling `browser_get_recent_events`. Open with EventSource (browser) or any SSE client (curl, Python `urllib`, the netra-fanout `Bridge.subscribe_events()` helper).
+Live tail of CDP events instead of polling `browser_get_recent_events`. Open with EventSource (browser) or any SSE client (curl, Python `urllib`, the netra-fanout `Bridge.subscribe_events()` helper).
 
 - **Path:** `GET /events?target_id=<TID>&types=<comma-sep>` on the bridge's HTTP listener.
 - **Auth:** `Authorization: Bearer <T>` for non-browser clients, or `?token=<T>` for EventSource which can't set headers.
@@ -257,7 +257,7 @@ Result: `{ok, session_path}`
 
 Exports browser-wide cookies via `Storage.getCookies` to `~/.config/netra-browser/sessions/<name>.json`.
 
-`task_save_session` also captures **localStorage** (Plan H #7) for every origin currently open in any tab — uses the `DOMStorage` CDP domain on each target's session. The session JSON gets a `local_storage` map keyed by origin (e.g. `"https://example.com": {"auth_token": "..."}`).
+`task_save_session` also captures **localStorage** for every origin currently open in any tab — uses the `DOMStorage` CDP domain on each target's session. The session JSON gets a `local_storage` map keyed by origin (e.g. `"https://example.com": {"auth_token": "..."}`).
 - **Args:** `{name, skip_local_storage?: bool}` (set `skip_local_storage` to keep behavior cookies-only).
 - **Returns:** `{ok, session_path, local_storage_origins: [string]}`.
 

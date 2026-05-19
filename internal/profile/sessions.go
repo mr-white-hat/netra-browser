@@ -22,7 +22,7 @@ type sessionFile struct {
 
 	// LocalStorage is keyed by origin (e.g. "https://example.com"). Values are the
 	// origin's localStorage entries as a flat string→string map. Optional — older
-	// session files saved before Plan H ship as cookies-only and load fine.
+	// session files written before this field was added ship as cookies-only and load fine.
 	LocalStorage map[string]map[string]string `json:"local_storage,omitempty"`
 }
 

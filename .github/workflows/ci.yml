@@ -32,4 +32,4 @@ jobs:
         with:
           go-version: "1.22"
       - run: |
-          test -z "$(gofmt -l . | grep -v '^docs/' | grep -v '^BRAINSTORM')"
+          test -z "$(gofmt -l . | grep -v '^docs/')"

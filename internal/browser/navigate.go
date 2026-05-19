@@ -46,7 +46,7 @@ func (p *Page) Navigate(ctx context.Context, opts NavigateOpts) (*NavigateResult
 	case WaitDOMContentLoaded:
 		waitMethod = "Page.domContentEventFired"
 	case WaitNetworkIdle:
-		// Plan B Task 5 implements networkidle properly.
+		// TODO: implement real networkidle (settled-request quiescence). For now this aliases load.
 		waitMethod = "Page.loadEventFired"
 	default:
 		return nil, fmt.Errorf("unknown wait_until: %s", opts.WaitUntil)

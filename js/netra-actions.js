@@ -4,7 +4,7 @@
 // window.__netra.*. Self-contained, no dependencies. Idempotent: re-injecting
 // the bundle replaces the namespace cleanly without breaking in-flight code.
 //
-// Plan H component #5. Single-file v0; bundler/release pipeline deferred.
+// Single-file v0; bundler/release pipeline deferred.
 (function () {
   "use strict";
 

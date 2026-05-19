@@ -16,8 +16,8 @@ type Defaults struct {
 var (
 	defaultsMu sync.RWMutex
 	defaults   = Defaults{
-		WaitUntil:     "domcontentloaded", // Plan G: faster default than 'load'.
-		CallTimeoutMs: 5000,               // Plan G: down from 30s.
+		WaitUntil:     "domcontentloaded",
+		CallTimeoutMs: 5000,
 	}
 )
 
