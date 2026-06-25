@@ -2,7 +2,7 @@
 
 > **Bring your own Chrome — the missing MCP bridge for AI agents that need a real, logged-in browser.**
 
-`netra-browser` is a single-binary Go bridge that connects AI agents (Claude Code, Claude Desktop, Cursor, Gemini, anything speaking [MCP](https://modelcontextprotocol.io)) to your **real Chrome** — the one with your cookies, MFA, corporate proxy, and installed extensions. **40 MCP tools** for navigation, snapshotting, interaction, network capture and blocking, viewport / device / geolocation / offline emulation, Web Vitals, Chrome traces, file uploads, dialogs, screenshots, JS evaluation, cookie management, HAR capture, PDF render, and session persistence — all over a single attached or launched Chrome instance.
+`netra-browser` is a single-binary Go bridge that connects AI agents (Claude Code, Claude Desktop, Cursor, Gemini, anything speaking [MCP](https://modelcontextprotocol.io)) to your **real Chrome** — the one with your cookies, MFA, corporate proxy, and installed extensions. **43 MCP tools** for navigation, snapshotting, interaction, network capture and blocking, viewport / device / geolocation / offline emulation, Web Vitals, Chrome traces, file uploads, dialogs, screenshots, JS evaluation, cookie management, HAR capture, session persistence, and **per-agent tab groups so multiple Claude agents can drive separate tabs of one Chrome concurrently without clobbering each other** — all over a single attached or launched Chrome instance.
 
 [![tests](https://img.shields.io/badge/tests-passing-success)](https://github.com/mr-white-hat/netra-browser/actions) [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![go](https://img.shields.io/badge/go-1.22+-00ADD8)](go.mod)
 
@@ -18,7 +18,7 @@ Most browser-automation tools (Playwright, Puppeteer, Selenium, Browserbase) lau
 - **Stateful workflows:** drag-drop a file, scroll halfway down, fill three fields, then ask the AI to take over — fresh-launch tools start at zero.
 - **Stable fingerprints:** sites that fingerprint browsers flag a fresh Playwright instance as a bot. Your daily Chrome doesn't get flagged.
 
-`netra-browser` solves all five by **attaching to (or launching) your actual Chrome** via the [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/), then exposing 40 high-level tools over MCP that any modern AI agent can drive.
+`netra-browser` solves all five by **attaching to (or launching) your actual Chrome** via the [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/), then exposing 43 high-level tools over MCP that any modern AI agent can drive.
 
 ---
 
@@ -31,7 +31,7 @@ Most browser-automation tools (Playwright, Puppeteer, Selenium, Browserbase) lau
 - **Two transports, same tool surface.** stdio for local MCP clients (Claude Desktop, Claude Code), HTTP-SSE for remote / multi-client / Docker.
 - **Session persistence built in.** `task_save_session` exports browser-wide cookies; `task_load_session` restores them into a fresh Chrome. No more re-MFA loops.
 - **First-class network and event observability.** `browser_get_recent_events` exposes the network log, console output, and dialog events. `task_capture_har` produces standard HAR 1.2 for offline analysis.
-- **40 tools across 4 namespaces.** `meta_*` (3 tools, lifecycle), `browser_*` (30 tools, page-level), `task_*` (7 tools, high-level workflows). Comprehensive enough that you rarely have to drop into raw `browser_eval`.
+- **43 tools across 4 namespaces.** `meta_*` (3 tools, lifecycle), `browser_*` (33 tools, page-level — including per-agent tab groups), `task_*` (7 tools, high-level workflows). Comprehensive enough that you rarely have to drop into raw `browser_eval`.
 - **Friendly tab IDs.** `browser_list_tabs` and `browser_new_tab` return a short `tab_id` (`t1`, `t2`, …) alongside the raw 32-char `target_id`. Every tool accepts either.
 - **Honest test coverage.** 7 end-to-end tests against real headless Chromium prove the bridge actually drives a browser — not just unit tests against a mock.
 
@@ -87,7 +87,7 @@ Open Chrome with the debug port:
 google-chrome --remote-debugging-port=9222
 ```
 
-Restart Claude Desktop. You'll have all 40 tools available. Try:
+Restart Claude Desktop. You'll have all 43 tools available. Try:
 
 > Use `meta_attach`, then `browser_list_tabs`, and tell me what's open. Take a screenshot of the active tab.
 
@@ -111,7 +111,7 @@ Run Chrome yourself with `--remote-debugging-port=9222`, or pass `--launch` to l
 Claude Desktop: the JSON above. Claude Code: `claude mcp add netra-browser -- netra-browser`. Any other MCP client: point it at the binary's stdio or its HTTP-SSE endpoint.
 
 **3. Agent attaches.**
-First call is `meta_attach`. After that, the agent has 40 tools to navigate, inspect, interact, and capture.
+First call is `meta_attach`. After that, the agent has 43 tools to navigate, inspect, interact, and capture.
 
 **4. Drive the page.**
 Most flows: `browser_new_tab` → `browser_navigate` → `browser_snapshot` (accessibility tree with stable IDs) → `browser_click` / `browser_fill` (using `{role,name}` or `snapshot_id`) → repeat.
@@ -158,6 +158,9 @@ Non-localhost listen requires `--token`; the bridge refuses to start without one
 | `browser_close_tab` | Close a tab |
 | `browser_adopt_tab` / `browser_release_tab` | Claim / un-claim a pre-existing tab into this project |
 | `browser_list_projects` | Diagnostic — every project sidecar in the projects dir |
+| `browser_create_group` | Open a fresh per-agent tab group (returns `group_id` like `g1`); opens a tab in it by default |
+| `browser_list_groups` | Every live group, its owned tabs, and each group's active tab |
+| `browser_close_group` | Tear down a group — releases its tabs by default, or closes them with `{close_tabs: true}` |
 
 ### Navigation
 | Tool | Purpose |
@@ -301,6 +304,24 @@ Sessions live at `~/.config/netra-browser/sessions/<name>.json`. Recipes live at
 
 Each bridge gets its own `--project <name>` and `--lock <unique-path>`. `browser_list_tabs` then only shows that bridge's owned tabs by default; pass `{include_all: true}` to see everything Chrome has open. Adopt pre-existing tabs into your project with `browser_adopt_tab`.
 
+### Multiple agents, one bridge — per-agent tab groups
+
+When several Claude agents share **one** bridge (e.g. an orchestrator fanning out subagents, or multiple MCP clients on the same HTTP-SSE endpoint), they used to collide on a single shared "active tab": whichever agent navigated last moved every other agent's implicit target. **Tab groups** fix this — each agent gets a private lane with its own active tab and its own set of owned tabs.
+
+Workflow per agent:
+
+1. `browser_create_group` → returns a `group_id` (`g1`, `g2`, …) and, by default, opens a fresh tab already set as that group's active tab.
+2. Pass that `group_id` on subsequent page calls (`browser_navigate`, `browser_click`, `browser_fill`, `browser_new_tab`, the coordinate tools, …). With a `group_id` set, omitting `target_id` resolves to **that group's** active tab — never a global one.
+3. `browser_close_group` when done (releases the tabs, or closes them with `{close_tabs: true}`).
+
+Isolation guarantees:
+- A tab opened or first touched under a `group_id` is **owned** by that group.
+- Acting on a tab owned by a *different* group returns `cross_group` — agents cannot drive each other's tabs.
+- Opening a grouped tab never touches the legacy session-wide active target, so a grouped agent and a legacy (un-grouped) caller don't interfere.
+- Calls with **no** `group_id` keep the original single-active-target behavior, so existing single-agent setups are unchanged.
+
+This is cooperative isolation keyed by `group_id` (it works identically over stdio and HTTP-SSE). For hard, per-connection isolation, run a separate bridge per agent with distinct `--project`/`--lock` (see above).
+
 ---
 
 ## Roadmap
@@ -308,6 +329,7 @@ Each bridge gets its own `--project <name>` and `--lock <unique-path>`. `browser
 **Shipped**
 - Core bridge: lifecycle, navigation, snapshot, interaction, eval, cookies, screenshots — Plans A–F.
 - Hotfixes + project groups + `browser_diagnose` + speed defaults.
+- Per-agent tab groups (`browser_create_group` / `browser_list_groups` / `browser_close_group`) — concurrent agents drive separate tabs of one Chrome without clobbering a shared active tab.
 - Companion ecosystem: `netra-fanout` (Python concurrent multi-tab driver, [`python/`](python/)), `netra-actions` (JS primitives bundle, [`js/netra-actions.js`](js/netra-actions.js)), localStorage in `task_save_session` / `task_load_session`, SSE event streaming on `/events`.
 - `browser_drop_files` — drag-drop file uploads (auto-detects hidden file input, falls back to native CDP drag sequence).
 - Resource hygiene: `Subscribe` / `SubscribeOnTarget` return `(chan, cleanup)`, `Page.Close` tears down every collector goroutine, `browser_close_tab` reaps server-side state, `Target.targetDestroyed` reaps user-closed tabs, O(1) RingBuffer.

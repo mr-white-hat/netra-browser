@@ -44,12 +44,20 @@ type Session struct {
 	// lazily on first request per target_id; never reused once allocated.
 	nextTabSeq int
 	tabIDs     map[string]string // target_id → "tN"
+	// Per-agent tab groups (see group.go). Each agent works in its own group
+	// with its own active tab, so concurrent agents never clobber a shared
+	// "active target". groups: id → group; targetGroup: target_id → owning id.
+	groups       map[string]*tabGroup
+	targetGroup  map[string]string
+	nextGroupSeq int
 }
 
 func NewSession() *Session {
 	return &Session{
-		pages:  map[string]*browser.Page{},
-		tabIDs: map[string]string{},
+		pages:       map[string]*browser.Page{},
+		tabIDs:      map[string]string{},
+		groups:      map[string]*tabGroup{},
+		targetGroup: map[string]string{},
 	}
 }
 
@@ -148,6 +156,9 @@ func (s *Session) Clear() {
 		s.client = nil
 	}
 	s.activeTarget = ""
+	s.groups = map[string]*tabGroup{}
+	s.targetGroup = map[string]string{}
+	s.nextGroupSeq = 0
 	s.mu.Unlock()
 	for _, p := range pages {
 		p.Close()

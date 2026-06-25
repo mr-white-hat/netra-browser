@@ -12,6 +12,7 @@ func RegisterBrowserNav(reg *mcp.Registry, sess *mcp.Session) {
 	type navArgs struct {
 		URL       string `json:"url"`
 		TargetID  string `json:"target_id"`
+		GroupID   string `json:"group_id"`
 		WaitUntil string `json:"wait_until"`
 	}
 	reg.Register("browser_navigate", func(ctx context.Context, params json.RawMessage) (any, error) {
@@ -24,12 +25,9 @@ func RegisterBrowserNav(reg *mcp.Registry, sess *mcp.Session) {
 		if a.URL == "" {
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "url required"}.AsResult(), nil
 		}
-		tid := a.TargetID
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target_id and no active target"}.AsResult(), nil
+		tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+		if errR != nil {
+			return *errR, nil
 		}
 		// Validate target still exists — active-target IDs go stale when a tab closes,
 		// and explicit target_ids may be invented by callers.
@@ -37,7 +35,11 @@ func RegisterBrowserNav(reg *mcp.Registry, sess *mcp.Session) {
 			return mcp.ToolError{Code: mcp.ErrChromeDisconnected, Message: err.Error()}.AsResult(), nil
 		} else if !ok {
 			if a.TargetID == "" {
-				sess.SetActiveTarget("")
+				if a.GroupID != "" {
+					sess.SetGroupActive(a.GroupID, "")
+				} else {
+					sess.SetActiveTarget("")
+				}
 				return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no active target"}.AsResult(), nil
 			}
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "target_id not found: " + tid}.AsResult(), nil
@@ -73,17 +75,15 @@ func RegisterBrowserNav(reg *mcp.Registry, sess *mcp.Session) {
 		reg.Register(name, func(ctx context.Context, params json.RawMessage) (any, error) {
 			var a struct {
 				TargetID       string `json:"target_id"`
+				GroupID        string `json:"group_id"`
 				ReturnSnapshot bool   `json:"return_snapshot"`
 			}
 			if len(params) > 0 {
 				_ = json.Unmarshal(params, &a)
 			}
-			tid := a.TargetID
-			if tid == "" {
-				tid = sess.ActiveTarget()
-			}
-			if tid == "" {
-				return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+			tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+			if errR != nil {
+				return *errR, nil
 			}
 			page, err := sess.Page(ctx, tid)
 			if err != nil {

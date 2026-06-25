@@ -10,6 +10,8 @@ const (
 	ErrNotFound           = "not_found"
 	ErrNotAttached        = "not_attached"
 	ErrInvalidArgs        = "invalid_args"
+	ErrUnknownGroup       = "unknown_group"
+	ErrCrossGroup         = "cross_group"
 )
 
 // ToolError is the application-level error returned inside a tool result.
