@@ -12,17 +12,15 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_snapshot", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a struct {
 			TargetID string `json:"target_id"`
+			GroupID  string `json:"group_id"`
 			Mode     string `json:"mode"`
 		}
 		if len(params) > 0 {
 			_ = json.Unmarshal(params, &a)
 		}
-		tid := a.TargetID
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+		tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+		if errR != nil {
+			return *errR, nil
 		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {
@@ -46,18 +44,16 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_screenshot", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a struct {
 			TargetID string           `json:"target_id"`
+			GroupID  string           `json:"group_id"`
 			Locator  *browser.Locator `json:"locator,omitempty"`
 			FullPage bool             `json:"full_page"`
 		}
 		if len(params) > 0 {
 			_ = json.Unmarshal(params, &a)
 		}
-		tid := a.TargetID
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+		tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+		if errR != nil {
+			return *errR, nil
 		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {
@@ -74,6 +70,7 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 		var a struct {
 			Expression string `json:"expression"`
 			TargetID   string `json:"target_id"`
+			GroupID    string `json:"group_id"`
 		}
 		if err := json.Unmarshal(params, &a); err != nil {
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: err.Error()}.AsResult(), nil
@@ -81,12 +78,9 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 		if a.Expression == "" {
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "expression required"}.AsResult(), nil
 		}
-		tid := a.TargetID
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+		tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+		if errR != nil {
+			return *errR, nil
 		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {
@@ -103,16 +97,14 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 		var a struct {
 			URLs     []string `json:"url_filter"`
 			TargetID string   `json:"target_id"`
+			GroupID  string   `json:"group_id"`
 		}
 		if len(params) > 0 {
 			_ = json.Unmarshal(params, &a)
 		}
-		tid := a.TargetID
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+		tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+		if errR != nil {
+			return *errR, nil
 		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {
@@ -129,16 +121,14 @@ func RegisterBrowserInspect(reg *mcp.Registry, sess *mcp.Session) {
 		var a struct {
 			Cookies  []map[string]any `json:"cookies"`
 			TargetID string           `json:"target_id"`
+			GroupID  string           `json:"group_id"`
 		}
 		if err := json.Unmarshal(params, &a); err != nil {
 			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: err.Error()}.AsResult(), nil
 		}
-		tid := a.TargetID
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			return mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult(), nil
+		tid, errR := resolveGroupTarget(sess, a.GroupID, a.TargetID)
+		if errR != nil {
+			return *errR, nil
 		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {

@@ -67,10 +67,14 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 			return mcp.ToolError{Code: mcp.ErrNotAttached, Message: "call meta_attach first"}.AsResult(), nil
 		}
 		var args struct {
-			URL string `json:"url"`
+			URL     string `json:"url"`
+			GroupID string `json:"group_id"`
 		}
 		if len(params) > 0 {
 			_ = json.Unmarshal(params, &args)
+		}
+		if args.GroupID != "" && !sess.GroupExists(args.GroupID) {
+			return mcp.ToolError{Code: mcp.ErrUnknownGroup, Message: "unknown group_id: " + args.GroupID}.AsResult(), nil
 		}
 		if args.URL == "" {
 			args.URL = "about:blank"
@@ -83,15 +87,26 @@ func RegisterBrowserTargets(reg *mcp.Registry, sess *mcp.Session) {
 			TargetID string `json:"targetId"`
 		}
 		_ = json.Unmarshal(raw, &resp)
-		sess.SetActiveTarget(resp.TargetID)
+		// A grouped tab belongs to that agent's lane and becomes its active tab;
+		// it does NOT touch the shared session active target. An ungrouped tab
+		// keeps the legacy behavior of setting the session-wide active target.
+		if args.GroupID != "" {
+			sess.SetGroupActive(args.GroupID, resp.TargetID)
+		} else {
+			sess.SetActiveTarget(resp.TargetID)
+		}
 		if proj := sess.Project(); proj != nil && resp.TargetID != "" {
 			_ = proj.Adopt(resp.TargetID)
 		}
-		return map[string]any{
+		out := map[string]any{
 			"ok":        true,
 			"target_id": resp.TargetID,
 			"tab_id":    sess.TabIDFor(resp.TargetID),
-		}, nil
+		}
+		if args.GroupID != "" {
+			out["group_id"] = args.GroupID
+		}
+		return out, nil
 	})
 
 	reg.Register("browser_select_tab", func(ctx context.Context, params json.RawMessage) (any, error) {

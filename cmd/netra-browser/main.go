@@ -110,6 +110,7 @@ func main() {
 		},
 	})
 	tools.RegisterBrowserTargets(reg, sess)
+	tools.RegisterBrowserGroups(reg, sess)
 	tools.RegisterBrowserNav(reg, sess)
 	tools.RegisterBrowserInspect(reg, sess)
 	tools.RegisterBrowserInteract(reg, sess)

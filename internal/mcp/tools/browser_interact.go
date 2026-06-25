@@ -13,15 +13,13 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	type baseArgs struct {
 		Locator        browser.Locator `json:"locator"`
 		TargetID       string          `json:"target_id"`
+		GroupID        string          `json:"group_id"`
 		ReturnSnapshot bool            `json:"return_snapshot"`
 	}
-	resolvePage := func(ctx context.Context, tid string) (*browser.Page, *map[string]any) {
-		if tid == "" {
-			tid = sess.ActiveTarget()
-		}
-		if tid == "" {
-			r := mcp.ToolError{Code: mcp.ErrInvalidArgs, Message: "no target"}.AsResult()
-			return nil, &r
+	resolvePage := func(ctx context.Context, groupID, tid string) (*browser.Page, *map[string]any) {
+		tid, errR := resolveGroupTarget(sess, groupID, tid)
+		if errR != nil {
+			return nil, errR
 		}
 		page, err := sess.Page(ctx, tid)
 		if err != nil {
@@ -54,7 +52,7 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_click", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a baseArgs
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -68,7 +66,7 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_fill", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a fillArgs
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -78,7 +76,7 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_hover", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a baseArgs
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -92,7 +90,7 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_select_option", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a selArgs
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -102,11 +100,12 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	type keyArgs struct {
 		Key      string `json:"key"`
 		TargetID string `json:"target_id"`
+		GroupID  string `json:"group_id"`
 	}
 	reg.Register("browser_press_key", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a keyArgs
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -120,7 +119,7 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 	reg.Register("browser_upload_file", func(ctx context.Context, params json.RawMessage) (any, error) {
 		var a uploadArgs
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -134,11 +133,12 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 			X          float64 `json:"x"`
 			Y          float64 `json:"y"`
 			TargetID   string  `json:"target_id"`
+			GroupID    string  `json:"group_id"`
 			Button     string  `json:"button"`
 			ClickCount int     `json:"click_count"`
 		}
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -150,9 +150,10 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 			X        float64 `json:"x"`
 			Y        float64 `json:"y"`
 			TargetID string  `json:"target_id"`
+			GroupID  string  `json:"group_id"`
 		}
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
@@ -170,11 +171,12 @@ func RegisterBrowserInteract(reg *mcp.Registry, sess *mcp.Session) {
 				Y float64 `json:"y"`
 			} `json:"to"`
 			TargetID string `json:"target_id"`
+			GroupID  string `json:"group_id"`
 			Button   string `json:"button"`
 			Steps    int    `json:"steps"`
 		}
 		_ = json.Unmarshal(params, &a)
-		page, errR := resolvePage(ctx, a.TargetID)
+		page, errR := resolvePage(ctx, a.GroupID, a.TargetID)
 		if errR != nil {
 			return *errR, nil
 		}
